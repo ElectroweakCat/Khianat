@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<style>
+    body {
+      background-color: rgb(170, 48, 48);
+      color: rgb(235, 235, 196);
+      text-align: center;
+      font-size: 1.5vw;
+      font-family: Garamond;
+      margin: 3% 25% 5% 25%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    header {
+      font-family: Garamond;
+      text-align: center;
+      color: rgb(235, 235, 196);
+    }
+    footer {
+      margin-top: 10%;
+    }
+
+    /* Here CSS for animation with balls */
+    .balls {
+      border-radius: 50%;
+      position: fixed;
+      width: 50px;
+      height: 50px;
+      top: 50%;
+      animation-name: jump;
+      animation-duration: 5s;
+      animation-iteration-count: infinite;
+    }
+    #purple_ball {
+      background: #A3F;
+      left: 10%;
+      animation-timing-function: linear;
+    }
+    #turquoise_ball {
+      background: #03A9AF;
+      left: 90%;
+      animation-timing-function: ease-in-out;
+    }
+    @keyframes jump {
+      50% {
+        top: 20%;
+      }
+    }
+
+
+    /* Here CSS for chessboard */
+    .clearfix-7da63 {
+      clear: both;
+    }
+    .board-b72b1 {
+      border: 0.5vw solid #404040;
+      box-sizing: content-box;
+    }
+
+    .square-55d63 {
+      float: left;
+      position: relative;
+
+    /* disable any native browser highlighting */
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      -khtml-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+    }
+
+    .white-1e1d7 {
+      background-color: #f0d9b5;
+      color: #da8a48;
+    }
+
+    .black-3c85d {
+      background-color: #da8a48;
+      color: #f0d9b5;
+    }
+
+    .highlight1-32417, .highlight2-9c5d2 {
+      box-shadow: inset 0 0 3px 3px rgb(247, 0, 255);
+    }
+
+    .notation-322f9 {
+      cursor: default;
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      font-size: 14px;
+      position: absolute;
+    }
+
+    .alpha-d2270 {
+      bottom: 1px;
+      right: 3px;
+    }
+
+    .numeric-fc462 {
+      top: 2px;
+      left: 2px;
+    }
+
+  </style>
+
+  <!-- get W3 CSS framework -->
+  <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+
+
+  <div class="balls" id="purple_ball"></div>
+  <div class="balls" id="turquoise_ball"></div>
+
+  <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>Khianat</title>
+      <link rel="icon" type="image/x-icon" href="favicon.ico">
+
+      <!-- get jQuery from google -->
+      <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
+      <!-- get chessboard.js (copyright!)-->
+      <script type="text/javascript" src="chessboard-1.0.0.js"></script>
+
+      <!-- get chessboard.js (Copyright (c) 2022, Jeff Hlywa (jhlywa@gmail.com))-->
+      <script type="text/javascript" src="chess.js"></script>
+  </head>
+
+  <body>
+
+      <header>
+        <h1>Chengine - Chess website</h1>
+      </header>
+
+      <div class="w3-bar w3-black">
+        <a href="#Home" class="w3-bar-item w3-button">Home</a>
+        <a href="#Play" class="w3-bar-item w3-button">Play</a>
+        <a href="#" class="w3-bar-item w3-button">About</a>
+        <a href="#" class="w3-bar-item w3-button">Impressum</a>
+      </div>
+
+      <main>
+      <section id="Home">
+        <br>
+        Online chess game website with interesting game modes. Play against the computer trained by machine learning.
+        <hr></hr>
+        <em>Chess is tedious, if it's played right.</em> - Khianat Quote #1
+        <hr></hr>
+        <em>So far I haven't tried to sac my king... should I?</em> - Khianat Quote #2
+        <hr></hr>
+        <em>If you like me and this website, you may donate for its maintenance.</em> - Khianat Quote #3
+      </section>
+
+      <section>
+        <form>
+          <fieldset>
+            <legend>What level of chess player are you?</legend>
+            <input id="one" type="radio" name="items" value="one" required>
+            <label for="one">Absolute beginner &#128556;</label><br>
+            <input id="two" type="radio" name="items" value="two">
+            <label for="two">Ambitious student &#129299;</label><br>
+            <input id="three" type="radio" name="items" value="three">
+            <label for="three">Club player &#128513;</label><br>
+            <input id="three" type="radio" name="items" value="three">
+            <label for="three">Professional &#128527;</label><br>
+            <input id="three" type="radio" name="items" value="three">
+            <label for="three">I have a title &#128526;</label>
+          </fieldset>
+          <input type="submit" name="submit" value="Submit">
+        </form>
+      </section>
+
+      <section id="Play">
+        <div id="myBoard" style="width: 400px"></div>
+        <label>Status:</label>
+        <div id="status"></div>
+        <label>FEN:</label>
+        <div id="fen"></div>
+        <label>PGN:</label>
+        <div id="pgn"></div>
+      <noscript>Sorry, your browser does not support JavaScript!</noscript>
+      <script>
+        var board = null
+        var game = new Chess()
+        var $status = $('#status')
+        var $fen = $('#fen')
+        var $pgn = $('#pgn')
+
+        function onDragStart (source, piece, position, orientation) {
+        // do not pick up pieces if the game is over
+        if (game.game_over()) return false
+
+        // only pick up pieces for the side to move
+        if ((game.turn() === 'w' && piece.search(/^b/) !== -1) ||
+        (game.turn() === 'b' && piece.search(/^w/) !== -1)) {
+        return false
+        }
+        }
+
+        function onDrop (source, target) {
+        // see if the move is legal
+        var move = game.move({
+        from: source,
+        to: target,
+        promotion: 'q' // always promote to a queen for simplicity
+        })
+
+        // illegal move
+        if (move === null) return 'snapback'
+
+        updateStatus()
+        }
+
+        // update the board position after the piece snap
+        // for castling, en passant, pawn promotion
+        function onSnapEnd () {
+        board.position(game.fen())
+        }
+
+        function updateStatus () {
+        var status = ''
+
+        var moveColor = 'White'
+        if (game.turn() === 'b') {
+        moveColor = 'Black'
+        }
+
+        // checkmate?
+        if (game.in_checkmate()) {
+        status = 'Game over, ' + moveColor + ' is in checkmate.'
+        }
+
+        // draw?
+        else if (game.in_draw()) {
+        status = 'Game over, drawn position'
+        }
+
+        // game still on
+        else {
+        status = moveColor + ' to move'
+
+        // check?
+        if (game.in_check()) {
+        status += ', ' + moveColor + ' is in check'
+        }
+        }
+
+        $status.html(status)
+        $fen.html(game.fen())
+        $pgn.html(game.pgn())
+        }
+
+        var config = {
+        draggable: true,
+        position: 'start',
+        onDragStart: onDragStart,
+        onDrop: onDrop,
+        onSnapEnd: onSnapEnd
+        }
+        board = Chessboard('myBoard', config)
+
+        updateStatus()
+        
+      </script>
+
+      </section>
+
+      <sidebar>
+        Play!
+      </sidebar>
+
+      </main>
+
+      <footer>
+        <form>
+          <p>Sign up to the newsletter!</p>
+          <label for="email">Email:</label>
+          <input
+             type="email"
+             name="email"
+             id="email"
+             class="form-control"
+             placeholder="Enter your email"
+             required
+             />
+          <input type="submit" name="submit" value="Submit">
+        </form>
+        <br>
+        Copyright &copy; 2022 Benjamin Raphael Berger
+      </footer>
+
+  </body>
+
+  </html>
