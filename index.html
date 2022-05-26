@@ -84,7 +84,7 @@
     }
 
     .highlight1-32417, .highlight2-9c5d2 {
-      box-shadow: inset 0 0 3px 3px rgb(247, 0, 255);
+      box-shadow: inset 0 0 3px 3px rgb(170, 48, 48);
     }
 
     .notation-322f9 {
@@ -102,6 +102,10 @@
     .numeric-fc462 {
       top: 2px;
       left: 2px;
+    }
+
+    #myBoard{
+      margin: auto;
     }
 
   </style>
@@ -122,36 +126,40 @@
       <!-- get jQuery from google -->
       <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 
-      <!-- get chessboard.js (copyright!)-->
+      <!-- get chessboard.js (Copyright 2019 Chris Oakman)-->
       <script type="text/javascript" src="chessboard-1.0.0.js"></script>
 
-      <!-- get chessboard.js (Copyright (c) 2022, Jeff Hlywa (jhlywa@gmail.com))-->
-      <script type="text/javascript" src="chess.js"></script>
+      <!-- get chess.js (Copyright (c) 2022, Jeff Hlywa (jhlywa@gmail.com))-->
+      <script type="text/javascript" src="chess.js-0.12.1/chess.js"></script>
+
+      <!-- get evaluation function of current chessboard-->
+      <script type="text/javascript" src="evaluation.js"></script>
+
+      <!-- get the acutall chess engine, which returns the best move it can find-->
+      <script type="text/javascript" src="engine.js"></script>
   </head>
 
   <body>
 
       <header>
-        <h1>Chengine - Chess website</h1>
+        <h1><u>Khianat - Chess website</u></h1>
       </header>
 
       <div class="w3-bar w3-black">
-        <a href="#Home" class="w3-bar-item w3-button">Home</a>
+        <a href="index.html" class="w3-bar-item w3-button">Home</a>
         <a href="#Play" class="w3-bar-item w3-button">Play</a>
-        <a href="#" class="w3-bar-item w3-button">About</a>
-        <a href="#" class="w3-bar-item w3-button">Impressum</a>
+        <a href="about.html" class="w3-bar-item w3-button">About</a>
+        <a href="blog.html" class="w3-bar-item w3-button">Blog</a>
+        <a href="impressum.html" class="w3-bar-item w3-button">Impressum</a>
       </div>
 
       <main>
-      <section id="Home">
+      <section>
         <br>
-        Online chess game website with interesting game modes. Play against the computer trained by machine learning.
+        Online chess game website with interesting game modes. Play against the chess engine Khianat.
         <hr></hr>
-        <em>Chess is tedious, if it's played right.</em> - Khianat Quote #1
+        <em>Chess is tedious, if it's played right.</em>
         <hr></hr>
-        <em>So far I haven't tried to sac my king... should I?</em> - Khianat Quote #2
-        <hr></hr>
-        <em>If you like me and this website, you may donate for its maintenance.</em> - Khianat Quote #3
       </section>
 
       <section>
@@ -174,20 +182,37 @@
       </section>
 
       <section id="Play">
-        <div id="myBoard" style="width: 400px"></div>
+        <form>
+        <fieldset>
+        <legend>Play against the computer! You have the white pieces.</legend>
+        <div id="myBoard" style="width: 550px"></div>
         <label>Status:</label>
         <div id="status"></div>
-        <label>FEN:</label>
-        <div id="fen"></div>
-        <label>PGN:</label>
-        <div id="pgn"></div>
       <noscript>Sorry, your browser does not support JavaScript!</noscript>
+  
       <script>
         var board = null
         var game = new Chess()
+        var whiteSquareGrey = '#a9a9a9'
+        var blackSquareGrey = '#696969'
         var $status = $('#status')
         var $fen = $('#fen')
         var $pgn = $('#pgn')
+
+        function removeGreySquares () {
+          $('#myBoard .square-55d63').css('background', '')
+        }
+
+        function greySquare (square) {
+          var $square = $('#myBoard .square-' + square)
+
+          var background = whiteSquareGrey
+          if ($square.hasClass('black-3c85d')) {
+            background = blackSquareGrey
+          }     
+
+          $square.css('background', background)
+        }
 
         function onDragStart (source, piece, position, orientation) {
         // do not pick up pieces if the game is over
@@ -195,12 +220,12 @@
 
         // only pick up pieces for the side to move
         if ((game.turn() === 'w' && piece.search(/^b/) !== -1) ||
-        (game.turn() === 'b' && piece.search(/^w/) !== -1)) {
+        (game.turn() === 'b' && piece.search(/^w/) !== -1)) 
         return false
-        }
         }
 
         function onDrop (source, target) {
+          removeGreySquares()
         // see if the move is legal
         var move = game.move({
         from: source,
@@ -210,8 +235,37 @@
 
         // illegal move
         if (move === null) return 'snapback'
+        
+        // make best legal move for black
+        //document.getElementById("demo").innerHTML = game.fen();
+        //document.getElementById("demo1").innerHTML = game.pgn();
+        window.setTimeout(makeMove, 250)
+        //document.getElementById("demo2").innerHTML = game.moves();
 
         updateStatus()
+        }
+
+        function onMouseoverSquare (square, piece) {
+          // get list of possible moves for this square
+          var moves = game.moves({
+          square: square,
+          verbose: true
+        })
+
+          // exit if there are no moves available for this square
+          if (moves.length === 0) return
+
+          // highlight the square they moused over
+          greySquare(square)
+
+          // highlight the possible squares for this piece
+          for (var i = 0; i < moves.length; i++) {
+            greySquare(moves[i].to)
+          }
+        }
+
+        function onMouseoutSquare (square, piece) {
+          removeGreySquares()
         }
 
         // update the board position after the piece snap
@@ -254,23 +308,30 @@
         }
 
         var config = {
-        draggable: true,
-        position: 'start',
-        onDragStart: onDragStart,
-        onDrop: onDrop,
-        onSnapEnd: onSnapEnd
+          draggable: true,
+          position: 'start',
+          moveSpeed: 'slow',
+          snapbackSpeed: 500,
+          snapSpeed: 100,
+          onDragStart: onDragStart,
+          onDrop: onDrop,
+          onMouseoutSquare: onMouseoutSquare,
+          onMouseoverSquare: onMouseoverSquare,
+          onSnapEnd: onSnapEnd
         }
         board = Chessboard('myBoard', config)
 
         updateStatus()
-        
-      </script>
+        </script>
 
+        </fieldset>
+        </form>
       </section>
 
-      <sidebar>
-        Play!
-      </sidebar>
+      <p id="demo"></p>
+      <p id="demo1"></p>
+      <p id="demo2"></p>
+      <p id="demo3"></p> 
 
       </main>
 
