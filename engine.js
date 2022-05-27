@@ -243,20 +243,20 @@ function makeMove () {
       var goodMoves = [];
       var checkmateMoves =[];
       var castlingMoves =[];
-      var promotionMoves =[]
+      var promotionMoves =[];
       while (step < possibleMoves.length) {
 
         let checkmate = /[#]/;
         let castling = /[O]/;
         let promotion = /=Q/;
 
-        if (possibleMoves[step].match(checkmate) === "#") {
+        if (possibleMoves[step].search(checkmate) != -1) {
           checkmateMoves.push(possibleMoves[step]);
 
-        } else if (possibleMoves[step].match(promotion) === "=Q") {
+        } else if (possibleMoves[step].search(promotion) != -1) {
           promotionMoves.push(possibleMoves[step]);
 
-        } else if (possibleMoves[step].match(castling) === "O") {
+        } else if (possibleMoves[step].search(castling) != -1) {
           castlingMoves.push(possibleMoves[step]);
         }
 
@@ -289,7 +289,10 @@ function makeMove () {
         game.move(possibleMoves[randomIdx4]);
       }
     }
-    //document.getElementById("demo3").innerHTML = goodMoves;
+    document.getElementById("demo3").innerHTML = goodMoves;
+    document.getElementById("demo4").innerHTML = checkmateMoves;
+    document.getElementById("demo5").innerHTML = promotionMoves;
+    document.getElementById("demo6").innerHTML = castlingMoves;
     board.position(game.fen());
     updateStatus();
   }
