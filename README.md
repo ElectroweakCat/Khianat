@@ -1,2 +1,2 @@
-# OnlineChessGame
-Online chess game website with interesting game modes. Play against the computer trained by machine learning.
+# Online chess engine Khianat
+Play against the chess engine online on https://khianat.org/
