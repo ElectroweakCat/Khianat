@@ -6,11 +6,11 @@ A hand-built chess engine in plain JavaScript, playable in the browser.
 
 ## Motivation
 
-Khianat combines my passion for chess with my interest in software development and artificial intelligence. The goal was never to compete with Stockfish, but to build my own opponent from scratch and understand every single move it makes. The engine, the website and the design are all my own work, developed continuously since 2022 (the [blog](https://khianat.org/blog.html) documents the journey).
+Khianat combines my passion for chess with my interest in software development and artificial intelligence. The goal was never to compete with Stockfish, but to build my own opponent from scratch and understand every single move it makes. The engine, the website and the design are developed continuously since 2022 (the [blog](https://khianat.org/blog.html) documents the journey).
 
 ## How the engine works
 
-Khianat runs entirely in the browser — no engine server, no cloud.
+Khianat runs entirely in the browser. No engine server, no cloud.
 
 1. **Opening book:** for the first moves, a small hand-written repertoire with weighted random replies (Sicilian, Modern defense, occasionally the Englund gambit).
 2. **Search:** negamax (minimax) with alpha-beta pruning and iterative deepening on a ~3 second time budget, typically reaching depth 4–5 in the middlegame. Moves are ordered (captures and promotions first, previous best move first) so pruning cuts the tree by roughly two orders of magnitude.
@@ -21,7 +21,7 @@ Estimated playing strength: roughly 1400–1600 Elo against human casual players
 
 ## Tech stack
 
-- **Engine & UI:** vanilla JavaScript, HTML, CSS — no frameworks, no build step, no tracking
+- **Engine & UI:** vanilla JavaScript, HTML, CSS. No frameworks, no build step, no tracking
 - **Chess rules:** [chess.js](https://github.com/jhlywa/chess.js) (move generation & validation)
 - **Board rendering:** [chessboard.js](https://chessboardjs.com/) (drag & drop board)
 - **Poll backend:** a single small PHP script storing anonymous counts in JSON
