@@ -1,298 +1,352 @@
 /*
- * Performs the minimax algorithm to choose the best move: https://en.wikipedia.org/wiki/Minimax (pseudocode provided)
- * Recursively explores all possible moves up to a given depth, and evaluates the game board at the leaves.
- * 
- * Basic idea: maximize the minimum value of the position resulting from the opponent's possible following moves.
- * Optimization: alpha-beta pruning: https://en.wikipedia.org/wiki/Alpha%E2%80%93beta_pruning (pseudocode provided)
- * 
- * Inputs:
- *  - game:                 the game object.
- *  - depth:                the depth of the recursive tree of all possible moves (i.e. height limit).
- *  - isMaximizingPlayer:   true if the current layer is maximizing, false otherwise.
- *  - sum:                  the sum (evaluation) so far at the current layer.
- *  - color:                the color of the current player.
- * 
- * Output:
- *  the best move at the root of the current subtree.
+ * engine.js - the Khianat chess engine.
+ *
+ * How Khianat picks a move:
+ *  1. Opening book: in the very first moves Khianat plays its personal,
+ *     hand-written opening repertoire (weighted random choice).
+ *  2. Search: afterwards it runs a negamax search (minimax formulated for
+ *     both sides at once) with:
+ *       - alpha-beta pruning        (skips branches that cannot matter)
+ *       - iterative deepening      (depth 1, 2, 3, ... until the time budget is used)
+ *       - move ordering            (captures/promotions first, best move of the
+ *                                   previous iteration first at the root)
+ *       - quiescence search        (at the leaves, capture sequences are played
+ *                                   out so the engine never stops in the middle
+ *                                   of an exchange)
+ *  3. The board is evaluated with evaluateBoard() from evaluation.js
+ *     (material + piece square tables).
+ *
+ * Mate is scored as a huge value minus the distance to mate, so Khianat
+ * prefers the fastest mate and delays being mated as long as possible.
+ * Stalemate and drawn positions are scored 0.
  */
-function minimax(game, depth, alpha, beta, isMaximizingPlayer, sum, color)
-{
-    positionCount++; 
-    var children = game.moves({verbose: true});
 
-    // Sort moves randomly, so the same move isn't always picked on ties
-    children.sort(function(a, b){return 0.5 - Math.random()});
+// ---------------------------------------------------------------------------
+// Search configuration
+// ---------------------------------------------------------------------------
 
-    var currMove;
-    // Maximum depth exceeded or node is a terminal node (no children)
-    if (depth === 0 || children.length === 0)
-    {
-        return [null, sum]
+var TIME_BUDGET_MS = 3000;   // thinking time per move
+var MAX_SEARCH_DEPTH = 40;   // safety cap for iterative deepening
+var MATE_VALUE = 1000000;    // base score for checkmate
+
+// When the time budget is used up, searchAborted is set and the search
+// unwinds normally. Never abort via exceptions here: the search plays its
+// trial moves on the real game object, and a thrown exception would skip
+// the game.undo() calls and leave half a search line on the board.
+var searchDeadline = 0;
+var searchNodes = 0;
+var searchAborted = false;
+
+// ---------------------------------------------------------------------------
+// Opening book - Khianat's personal repertoire (kept from the very first
+// version of the engine). Keys are FEN strings, values are weighted replies.
+// ---------------------------------------------------------------------------
+
+var OPENING_BOOK = {
+    // --- first black move ---
+
+    // 1. e4
+    'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1':
+        [{ move: 'e5', weight: 0.5 }, { move: 'c5', weight: 0.5 }],
+
+    // 1. d4
+    'rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq d3 0 1':
+        [{ move: 'g6', weight: 0.7 }, { move: 'e5', weight: 0.3 }],
+
+    // 1. Nf3
+    'rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R b KQkq - 1 1':
+        [{ move: 'b5', weight: 0.5 }, { move: 'c5', weight: 0.5 }],
+
+    // 1. c4
+    'rnbqkbnr/pppppppp/8/8/2P5/8/PP1PPPPP/RNBQKBNR b KQkq c3 0 1':
+        [{ move: 'b6', weight: 0.5 }, { move: 'e5', weight: 0.5 }],
+
+    // 1. Nc3
+    'rnbqkbnr/pppppppp/8/8/8/2N5/PPPPPPPP/R1BQKBNR b KQkq - 1 1':
+        [{ move: 'd5', weight: 0.5 }, { move: 'c5', weight: 0.5 }],
+
+    // 1. g3
+    'rnbqkbnr/pppppppp/8/8/8/6P1/PPPPPP1P/RNBQKBNR b KQkq - 0 1':
+        [{ move: 'e5', weight: 0.5 }, { move: 'c5', weight: 0.5 }],
+
+    // --- second black move ---
+
+    // Englund gambit: 1. d4 e5 2. dxe5
+    'rnbqkbnr/pppp1ppp/8/4P3/8/8/PPP1PPPP/RNBQKBNR b KQkq - 0 2':
+        [{ move: 'Nc6', weight: 0.9 }, { move: 'Qh4', weight: 0.1 }],
+
+    // Sicilian defense: 1. e4 c5 2. Nf3
+    'rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2':
+        [{ move: 'e6', weight: 0.5 }, { move: 'a6', weight: 0.5 }],
+
+    // Kings pawn opening, kings knight variation: 1. e4 e5 2. Nf3
+    'rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2':
+        [{ move: 'Nc6', weight: 0.5 }, { move: 'f5', weight: 0.5 }],
+
+    // Vienna game: 1. e4 e5 2. Nc3
+    'rnbqkbnr/pppp1ppp/8/4p3/4P3/2N5/PPPP1PPP/R1BQKBNR b KQkq - 1 2':
+        [{ move: 'Nf6', weight: 0.5 }, { move: 'Nc6', weight: 0.5 }],
+
+    // Modern defense with d4, e4: 1. d4 g6 2. e4
+    'rnbqkbnr/pppppp1p/6p1/8/3PP3/8/PPP2PPP/RNBQKBNR b KQkq e3 0 2':
+        [{ move: 'Bg7', weight: 0.5 }, { move: 'd6', weight: 0.5 }],
+
+    // Modern defense with d4, c4: 1. d4 g6 2. c4
+    'rnbqkbnr/pppppp1p/6p1/8/2PP4/8/PP2PPPP/RNBQKBNR b KQkq c3 0 2':
+        [{ move: 'Bg7', weight: 0.5 }, { move: 'Nf6', weight: 0.5 }]
+};
+
+/*
+ * Returns a book move (SAN string) for the current position, or null.
+ * Every book move is validated against the legal moves, so a wrong book
+ * entry can never freeze the game.
+ */
+function getBookMove (game) {
+    var entries = OPENING_BOOK[game.fen()];
+    if (!entries) return null;
+
+    // weighted random choice
+    var totalWeight = 0;
+    var i;
+    for (i = 0; i < entries.length; i++) {
+        totalWeight += entries[i].weight;
     }
-
-    // Find maximum/minimum from list of 'children' (possible moves)
-    var maxValue = Number.NEGATIVE_INFINITY;
-    var minValue = Number.POSITIVE_INFINITY;
-    var bestMove;
-    for (var i = 0; i < children.length; i++)
-    {
-        currMove = children[i];
-
-        // Note: in our case, the 'children' are simply modified game states
-        var currPrettyMove = game.move(currMove);
-        var newSum = evaluateBoard(currPrettyMove, sum, color);
-        var [childBestMove, childValue] = minimax(game, depth - 1, alpha, beta, !isMaximizingPlayer, newSum, color);
-
-        game.undo();
-
-        if (isMaximizingPlayer)
-        {
-            if (childValue > maxValue)
-            {
-                maxValue = childValue;
-                bestMove = currPrettyMove;
-            }
-            if (childValue > alpha)
-            {
-                alpha = childValue;
-            }
-        }
-
-        else
-        {
-            if (childValue < minValue)
-            {
-                minValue = childValue;
-                bestMove = currPrettyMove;
-            }
-            if (childValue < beta)
-            {
-                beta = childValue;
-            }
-        }
-
-        // Alpha-beta pruning
-        if (alpha >= beta)
-        {
+    var pick = Math.random() * totalWeight;
+    var chosen = entries[entries.length - 1].move;
+    for (i = 0; i < entries.length; i++) {
+        pick -= entries[i].weight;
+        if (pick <= 0) {
+            chosen = entries[i].move;
             break;
         }
     }
 
-    if (isMaximizingPlayer)
-    {
-        return [bestMove, maxValue]
+    // validate against the legal moves of the position
+    var legalMoves = game.moves();
+    if (legalMoves.indexOf(chosen) !== -1) {
+        return chosen;
     }
-    else
-    {
-        return [bestMove, minValue];
+    return null;
+}
+
+// ---------------------------------------------------------------------------
+// Move ordering: search promising moves first so alpha-beta prunes more.
+// ---------------------------------------------------------------------------
+
+/*
+ * Score used only for sorting (not for evaluation):
+ * promotions and "capture a big piece with a small piece" come first.
+ */
+function moveOrderScore (move) {
+    var score = 0;
+    if (move.captured) {
+        score += 10 * PIECE_VALUES[move.captured] - PIECE_VALUES[move.piece];
     }
+    if (move.promotion) {
+        score += PIECE_VALUES.q;
+    }
+    return score;
+}
+
+function orderMoves (moves) {
+    moves.sort(function (a, b) {
+        return moveOrderScore(b) - moveOrderScore(a);
+    });
+    return moves;
+}
+
+// ---------------------------------------------------------------------------
+// Time control
+// ---------------------------------------------------------------------------
+
+function checkTime () {
+    // Date.now() is not free, so only check it every 1024 nodes
+    if ((searchNodes & 1023) === 0 && Date.now() > searchDeadline) {
+        searchAborted = true;
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Quiescence search: at depth 0, keep playing captures (and promotions)
+// until the position is "quiet". Prevents the classic horizon effect
+// ("takes a pawn, loses the queen one move later").
+// ---------------------------------------------------------------------------
+
+function quiescence (game, alpha, beta, colorSign) {
+    searchNodes++;
+    checkTime();
+    if (searchAborted) return 0; // score is discarded anyway
+
+    // "stand pat": the side to move may also decline all captures
+    var standPat = colorSign * evaluateBoard(game);
+    if (standPat >= beta) return beta;
+    if (standPat > alpha) alpha = standPat;
+
+    var moves = game.moves({ verbose: true });
+    var noisyMoves = [];
+    for (var i = 0; i < moves.length; i++) {
+        if (moves[i].captured || moves[i].promotion) {
+            noisyMoves.push(moves[i]);
+        }
+    }
+    orderMoves(noisyMoves);
+
+    for (var j = 0; j < noisyMoves.length; j++) {
+        game.move(noisyMoves[j]);
+        var score = -quiescence(game, -beta, -alpha, -colorSign);
+        game.undo(); // must always run, even when the search is being aborted
+
+        if (searchAborted) return 0;
+        if (score >= beta) return beta;
+        if (score > alpha) alpha = score;
+    }
+
+    return alpha;
+}
+
+// ---------------------------------------------------------------------------
+// Negamax with alpha-beta pruning
+// ---------------------------------------------------------------------------
+
+/*
+ * Returns the score of the position from the point of view of the side
+ * to move. colorSign is +1 when White is to move, -1 when Black is.
+ * ply is the distance from the root (used to prefer faster mates).
+ */
+function negamax (game, depth, alpha, beta, colorSign, ply) {
+    searchNodes++;
+    checkTime();
+    if (searchAborted) return 0;
+
+    var moves = game.moves({ verbose: true });
+
+    // no legal moves: checkmate (bad for the side to move) or stalemate (draw)
+    if (moves.length === 0) {
+        return game.in_check() ? -(MATE_VALUE - ply) : 0;
+    }
+
+    // draw by 50-move rule, insufficient material or threefold repetition
+    if (game.in_draw() || game.in_threefold_repetition()) {
+        return 0;
+    }
+
+    if (depth === 0) {
+        return quiescence(game, alpha, beta, colorSign);
+    }
+
+    orderMoves(moves);
+
+    var best = -Infinity;
+    for (var i = 0; i < moves.length; i++) {
+        game.move(moves[i]);
+        var score = -negamax(game, depth - 1, -beta, -alpha, -colorSign, ply + 1);
+        game.undo(); // must always run, even when the search is being aborted
+
+        if (searchAborted) return 0;
+        if (score > best) best = score;
+        if (best > alpha) alpha = best;
+        if (alpha >= beta) break; // alpha-beta pruning
+    }
+
+    return best;
 }
 
 /*
- * Makes the best legal move for the given color.
+ * Root search for one fixed depth. Returns { move, score }, or null when
+ * the time ran out midway (an unfinished depth must not be trusted).
+ * rootMoves is reordered between iterations so the best move so far
+ * is examined first (principal variation ordering).
  */
-function makeBestMove(color) {
-  if (color === 'b') {
-    var move = getBestMove(game, color, globalSum)[0];
-  } else {
-    var move = getBestMove(game, color, -globalSum)[0];
-  }
+function searchRoot (game, depth, colorSign, rootMoves) {
+    var alpha = -Infinity;
+    var beta = Infinity;
+    var bestMove = rootMoves[0];
+    var bestScore = -Infinity;
 
-  globalSum = evaluateBoard(game, move, globalSum, 'b');
-  updateAdvantage();
+    for (var i = 0; i < rootMoves.length; i++) {
+        game.move(rootMoves[i]);
+        var score = -negamax(game, depth - 1, -beta, -alpha, -colorSign, 1);
+        game.undo(); // must always run, even when the search is being aborted
 
-  game.move(move);
-  board.position(game.fen());
+        if (searchAborted) return null;
+        if (score > bestScore) {
+            bestScore = score;
+            bestMove = rootMoves[i];
+        }
+        if (bestScore > alpha) alpha = bestScore;
+    }
 
-  if (color === 'b') {
-    checkStatus('black');
-
-    // Highlight black move
-    $board.find('.' + squareClass).removeClass('highlight-black');
-    $board.find('.square-' + move.from).addClass('highlight-black');
-    squareToHighlight = move.to;
-    colorToHighlight = 'black';
-
-    $board
-      .find('.square-' + squareToHighlight)
-      .addClass('highlight-' + colorToHighlight);
-  } else {
-    checkStatus('white');
-
-    // Highlight white move
-    $board.find('.' + squareClass).removeClass('highlight-white');
-    $board.find('.square-' + move.from).addClass('highlight-white');
-    squareToHighlight = move.to;
-    colorToHighlight = 'white';
-
-    $board
-      .find('.square-' + squareToHighlight)
-      .addClass('highlight-' + colorToHighlight);
-  }
+    return { move: bestMove, score: bestScore };
 }
 
-function makeMove () {
-    let possibleMoves = game.moves();
-    let randomNum = Math.random();
+/*
+ * Iterative deepening: search depth 1, 2, 3, ... until the time budget
+ * runs out. The result of the last fully completed depth is used, so a
+ * timeout can never produce a half-searched, bad move.
+ */
+function getBestMove (game) {
+    searchDeadline = Date.now() + TIME_BUDGET_MS;
+    searchNodes = 0;
+    searchAborted = false;
 
-    // game over
-    if (possibleMoves.length === 0) return
+    // remember where the real game ends, so trial moves can never leak out
+    var realHistoryLength = game.history().length;
 
-    // here comes the opening theory
+    var colorSign = game.turn() === 'w' ? 1 : -1;
+    var rootMoves = orderMoves(game.moves({ verbose: true }));
 
-    //first black move
-    if (game.fen() === "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1") {
-      if (randomNum > 0.5) {
-        game.move("e5");
-      } else {
-        game.move("c5");
-      }
-    
-    } else if (game.fen() === "rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq d3 0 1") {
-      if (randomNum > 0.3) {
-        game.move("g6");
-      } else {
-        game.move("e5");
-      }
-    
-    } else if (game.fen() === "rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R b KQkq - 1 1") {
-        if (randomNum > 0.5) {
-          game.move("b5");
-        } else {
-          game.move("c5");
-        }
-    
-    } else if (game.fen() === "rnbqkbnr/pppppppp/8/8/2P5/8/PP1PPPPP/RNBQKBNR b KQkq c3 0 1") {
-        if (randomNum > 0.5) {
-          game.move("b6");
-        } else {
-          game.move("e5");
+    if (rootMoves.length === 0) return null;
+    if (rootMoves.length === 1) return rootMoves[0]; // forced move: no need to think
+
+    var bestMove = rootMoves[0];
+
+    for (var depth = 1; depth <= MAX_SEARCH_DEPTH; depth++) {
+        var result = searchRoot(game, depth, colorSign, rootMoves);
+
+        // time ran out during this depth: keep the move of the last finished depth
+        if (result === null) break;
+
+        bestMove = result.move;
+
+        // put the best move first for the next, deeper iteration
+        var idx = rootMoves.indexOf(bestMove);
+        if (idx > 0) {
+            rootMoves.splice(idx, 1);
+            rootMoves.unshift(bestMove);
         }
 
-    } else if (game.fen() === "rnbqkbnr/pppppppp/8/8/8/2N5/PPPPPPPP/R1BQKBNR b KQkq - 1 1") {
-        if (randomNum > 0.5) {
-          game.move("d5");
-        } else {
-          game.move("c5");
+        // stop early if a forced mate was found
+        if (Math.abs(result.score) >= MATE_VALUE - MAX_SEARCH_DEPTH) {
+            break;
         }
-    
-    } else if (game.fen() === "rnbqkbnr/pppppppp/8/8/8/6P1/PPPPPP1P/RNBQKBNR b KQkq - 0 1") {
-        if (randomNum > 0.5) {
-          game.move("e5");
-        } else {
-          game.move("c5");
-        }
-
-    //second black move
-
-    //Englund gambit
-    } else if (game.fen() === "rnbqkbnr/pppp1ppp/8/4P3/8/8/PPP1PPPP/RNBQKBNR b KQkq - 0 2") {
-      if (randomNum > 0.9) {
-        game.move("Qh4");
-      } else {
-        game.move("Nc6");
-      }
-    
-    //Sicilian defense
-    } else if (game.fen() === "rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2") {
-      if (randomNum > 0.5) {
-        game.move("e6");
-      } else {
-        game.move("a6");
-      }
-
-    //Kings pawn opening, Kings knight variation
-    } else if (game.fen() === "rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2") {
-      if (randomNum > 0.5) {
-        game.move("Nc6");
-      } else {
-        game.move("f5");
-      }
-
-    //Vienna game
-    } else if (game.fen() === "rnbqkbnr/pppp1ppp/8/4p3/4P3/2N5/PPPP1PPP/R1BQKBNR b KQkq - 1 2") {
-      if (randomNum > 0.5) {
-        game.move("Nf6");
-      } else {
-        game.move("Nc3");
-      }
-
-    //Modern defense with d4, e4
-    } else if (game.fen() === "rnbqkbnr/pppppp1p/6p1/8/3PP3/8/PPP2PPP/RNBQKBNR b KQkq e3 0 2") {
-      if (randomNum > 0.5) {
-        game.move("Bg7");
-      } else {
-        game.move("d6");
-      }
-    
-    //Modern defense with d4, c4
-    } else if (game.fen() === "rnbqkbnr/pppppp1p/6p1/8/2PP4/8/PP2PPPP/RNBQKBNR b KQkq c3 0 2") {
-      if (randomNum > 0.5) {
-        game.move("Bg7");
-      } else {
-        game.move("Nf6");
-      }
-
-
-
-    // actual engine part    
-    } else {
-
-    //evaluate move simply by checking if checkmate/castling is available or if opponents piece can be taken
-      var step = 0;
-      var goodMoves = [];
-      var checkmateMoves =[];
-      var castlingMoves =[];
-      var promotionMoves =[];
-      while (step < possibleMoves.length) {
-
-        let checkmate = /[#]/;
-        let castling = /[O]/;
-        let promotion = /=Q/;
-
-        if (possibleMoves[step].search(checkmate) != -1) {
-          checkmateMoves.push(possibleMoves[step]);
-
-        } else if (possibleMoves[step].search(promotion) != -1) {
-          promotionMoves.push(possibleMoves[step]);
-
-        } else if (possibleMoves[step].search(castling) != -1) {
-          castlingMoves.push(possibleMoves[step]);
-        }
-
-        else if (possibleMoves[step].length > 3) {
-          goodMoves.push(possibleMoves[step]);
-        }
-        step += 1;
-      }
-    
-    // otherwise play random move -.- 
-      let randomIdx0 = Math.floor(Math.random() * checkmateMoves.length);
-      let randomIdx1 = Math.floor(Math.random() * promotionMoves.length);
-      let randomIdx2 = Math.floor(Math.random() * castlingMoves.length);
-      let randomIdx3 = Math.floor(Math.random() * goodMoves.length);
-      let randomIdx4 = Math.floor(Math.random() * possibleMoves.length);
-
-      if (checkmateMoves.length > 0) {
-        game.move(checkmateMoves[randomIdx0]);
-
-      } else if (promotionMoves.length > 0) {
-        game.move(promotionMoves[randomIdx1]);
-      
-      } else if (castlingMoves.length > 0) {
-        game.move(castlingMoves[randomIdx2]);
-
-      } else if (goodMoves.length > 0) {
-        game.move(goodMoves[randomIdx3]);
-
-      } else {
-        game.move(possibleMoves[randomIdx4]);
-      }
     }
-    document.getElementById("demo3").innerHTML = goodMoves;
-    document.getElementById("demo4").innerHTML = checkmateMoves;
-    document.getElementById("demo5").innerHTML = promotionMoves;
-    document.getElementById("demo6").innerHTML = castlingMoves;
+
+    // safety net: take back anything the search may have left on the board.
+    // With the flag-based abort this should never trigger, but the game
+    // state staying consistent is too important to rely on "should".
+    while (game.history().length > realHistoryLength) {
+        game.undo();
+    }
+
+    return bestMove;
+}
+
+// ---------------------------------------------------------------------------
+// Public entry point, called from index.html after the player's move
+// ---------------------------------------------------------------------------
+
+function makeMove () {
+    if (game.game_over()) return;
+
+    // 1. try the opening book, 2. otherwise search
+    var move = getBookMove(game);
+    if (move === null) {
+        move = getBestMove(game);
+    }
+    if (move === null) return; // should never happen, but never crash the UI
+
+    game.move(move);
     board.position(game.fen());
+    playMoveSound();
     updateStatus();
-  }
+}

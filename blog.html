@@ -1,82 +1,85 @@
 <!DOCTYPE html>
-
 <html lang="en">
-
-<style>
-    body {
-      background-color: rgb(170, 48, 48);
-      color: rgb(235, 235, 196);
-      text-align: center;
-      font-size: 1.5vw;
-      font-family: Garamond;
-      margin: 3% 25% 5% 25%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    header {
-      font-family: Garamond;
-      text-align: center;
-      color: rgb(235, 235, 196);
-    }
-    footer {
-      margin-top: 10%;
-    }
-
-    form {
-      width: 700px;
-      text-align: center;
-    }
-
-  </style>
-
-  <!-- get W3 CSS framework -->
-  <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
-
 
   <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1">
-      <title>Khianat</title>
+      <title>Khianat &mdash; Blog</title>
       <link rel="icon" type="image/x-icon" href="favicon.ico">
+
+      <!-- central stylesheet -->
+      <link rel="stylesheet" href="style.css">
   </head>
 
   <body>
 
-      <header>
-        <h1><u>Blog</u></h1>
-        <h3>Small steps archived</h3>
+      <header class="site-header">
+        <h1>Blog</h1>
+        <p class="tagline">Small steps archived</p>
       </header>
 
-      <div class="w3-bar w3-black">
-        <a href="#Home" class="w3-bar-item w3-button">Home</a>
-        <a href="#Play" class="w3-bar-item w3-button">Play</a>
-        <a href="#Impressum" class="w3-bar-item w3-button">About</a>
-        <a href="#" class="w3-bar-item w3-button">Impressum</a>
-      </div>
+      <nav class="site-nav">
+        <a href="index.html">Home</a>
+        <a href="index.html#Play">Play</a>
+        <a href="about.html">About</a>
+        <a href="blog.html" class="active">Blog</a>
+        <a href="impressum.html">Impressum</a>
+      </nav>
 
       <main>
-        <section>
-            <form>
-            <fieldset>
-              <legend>#3 entry (26.05.22)</legend>
-              Khianat is not so very stupid anymore! Now it is maximizing the losses of the opponents, while completely ignoring the consequences. This is similar to a tree search algorithm with depth 1.
-            </fieldset>
-            <fieldset>
-              <legend>#2 entry (24.05.22)</legend>
-              I am failing to implement a working evaluation function for a given position on the chessboard. This evaluation function would be the basis of a Monte Carlo tree search algorithm. Nevertheless, I gave Khianat some rudimentary opening theory knowledge.
-              </fieldset>
-              <fieldset>
-                <legend>#1 entry (08.05.22)</legend>
-                   Today is the day my first files get uploaded to the server and finally the first content is visible online! The implementation of the chess engine is sadly not yet done and there are some issues to fix. For now the computer just makes random legal moves. Should be not too hard to win ;)
-                </fieldset>
-            </form>
-        </section>
+        <article class="card">
+          <h2>#10 entry <span class="date">(14.03.26)</span></h2>
+          The About page grew up! It is now a proper little tech documentation: how the engine works from move generation over evaluation to the alpha-beta search, with diagrams of the search tree, the pruning, the knight table as a heatmap and an Elo history chart. All hand-drawn in SVG and CSS, no chart library needed. Probably the longest page on the site now...
+        </article>
 
+        <article class="card">
+          <h2>#9 entry <span class="date">(11.01.26)</span></h2>
+          Small one: every move now makes a proper click sound, like a piece being set down on a real board. Had the sample lying around forever. Feels so much better!
+        </article>
+
+        <article class="card">
+          <h2>#8 entry <span class="date">(26.05.25)</span></h2>
+          Emergency fix! Right after leaving the opening book, pieces suddenly jumped around like crazy and at some point I was playing Black?! Turns out: when the thinking time ran out, the search aborted with an exception and skipped taking back its trial moves, so half a calculated line just stayed on the board. Now the abort runs through a simple flag and every undo is guaranteed to happen. Stable again, phew.
+        </article>
+
+        <article class="card">
+          <h2>#7 entry <span class="date">(03.05.25)</span></h2>
+          The big one: Khianat is a real engine now! The old Minimax plan is finally implemented: alpha-beta pruning, about 3 seconds of thinking per move, quiescence search, and the piece square tables actually in use. Mate, stalemate and draws are scored correctly, and the opening book stayed of course. My guess: somewhere around 1500 Elo. I honestly struggle against it myself now, especially when I get impatient... Next up maybe a transposition table and a smarter evaluation.
+        </article>
+
+        <article class="card">
+          <h2>#6 entry <span class="date">(27.01.24)</span></h2>
+          Fresh paint! One central stylesheet, card design, and the site finally works on the phone: the board resizes with the screen. Also slimmed down the endless copy-paste Impressum and said goodbye to the bouncing balls. RIP, little guys.
+        </article>
+
+        <article class="card">
+          <h2>#5 entry <span class="date">(19.04.23)</span></h2>
+          Khianat can talk now! It says "Yes" when it checkmates you and a grumpy "No" when you win. And the level survey finally counts for real: a small PHP script stores the votes and shows the percentages after you answer. Be honest about your level ;)
+        </article>
+
+        <article class="card">
+          <h2>#4 entry <span class="date">(08.10.22)</span></h2>
+          Big bugfix round. The site was loading chess.js from a folder that doesn't even exist, so the board ignored every single move... embarrassing. Fixed that, repaired the dead navigation links, the duplicated radio buttons and a bunch of invalid HTML. Khianat is playable again!
+        </article>
+
+        <article class="card">
+          <h2>#3 entry <span class="date">(26.05.22)</span></h2>
+          Khianat is not so very stupid anymore! Now it is maximizing the losses of the opponents, while completely ignoring the consequences. This is similar to a tree search algorithm with depth 1.
+        </article>
+
+        <article class="card">
+          <h2>#2 entry <span class="date">(24.05.22)</span></h2>
+          I am failing to implement a working evaluation function for a given position on the chessboard. This evaluation function would be the basis of a Monte Carlo tree search algorithm. Nevertheless, I gave Khianat some rudimentary opening theory knowledge.
+        </article>
+
+        <article class="card">
+          <h2>#1 entry <span class="date">(08.05.22)</span></h2>
+          Today is the day my first files get uploaded to the server and finally the first content is visible online! The implementation of the chess engine is sadly not yet done and there are some issues to fix. For now the computer just makes random legal moves. Should be not too hard to win ;)
+        </article>
       </main>
 
       <footer>
-        Copyright &copy; 2022 Benjamin Raphael Berger
+        Copyright &copy; 2026 Benjamin Berger
       </footer>
 
   </body>

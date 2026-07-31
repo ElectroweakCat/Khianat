@@ -1,0 +1,396 @@
+/* =========================================================
+   Khianat – central stylesheet
+   Modernized red/cream design, responsive & mobile friendly
+   ========================================================= */
+
+:root {
+  --bg-1: #a83232;          /* classic Khianat red */
+  --bg-2: #6f1d1d;          /* darker red for gradient */
+  --cream: #ebebc4;         /* classic cream text */
+  --cream-muted: rgba(235, 235, 196, 0.7);
+  --card-bg: rgba(0, 0, 0, 0.22);
+  --card-border: rgba(235, 235, 196, 0.18);
+  --nav-bg: rgba(20, 20, 20, 0.92);
+  --accent: #f0d9b5;        /* light board square color */
+  --radius: 14px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: linear-gradient(160deg, var(--bg-1) 0%, var(--bg-2) 100%) fixed;
+  color: var(--cream);
+  font-family: "EB Garamond", Garamond, Georgia, "Times New Roman", serif;
+  font-size: clamp(1.05rem, 1rem + 0.4vw, 1.25rem);
+  line-height: 1.6;
+  text-align: center;
+}
+
+/* ---------- Header ---------- */
+
+.site-header {
+  padding: 2.2rem 1rem 1rem;
+}
+
+.site-header h1 {
+  margin: 0;
+  font-size: clamp(2rem, 1.5rem + 2.5vw, 3.2rem);
+  letter-spacing: 0.04em;
+}
+
+.site-header .tagline {
+  margin: 0.3rem 0 0;
+  color: var(--cream-muted);
+  font-style: italic;
+}
+
+/* ---------- Navigation ---------- */
+
+.site-nav {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.2rem;
+  padding: 0.35rem 0.5rem;
+  background: var(--nav-bg);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+
+.site-nav a {
+  color: var(--cream);
+  text-decoration: none;
+  padding: 0.55rem 1.1rem;
+  border-radius: 8px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.site-nav a:hover {
+  background: rgba(235, 235, 196, 0.15);
+}
+
+.site-nav a.active {
+  background: var(--accent);
+  color: #5a1414;
+  font-weight: 600;
+}
+
+/* ---------- Layout ---------- */
+
+main {
+  width: 100%;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 0;
+}
+
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+  padding: 1.4rem 1.6rem;
+  margin: 0 0 1.5rem;
+  text-align: center;
+}
+
+.card h2 {
+  margin-top: 0;
+  font-size: 1.35em;
+}
+
+.card .date {
+  color: var(--cream-muted);
+  font-size: 0.85em;
+  font-weight: normal;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid var(--card-border);
+  margin: 1rem auto;
+  width: 60%;
+}
+
+a {
+  color: var(--accent);
+}
+
+/* ---------- Forms & survey ---------- */
+
+fieldset {
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 1rem 1.2rem;
+  margin: 0 0 1rem;
+}
+
+legend {
+  padding: 0 0.6rem;
+  font-weight: 600;
+}
+
+.survey-options {
+  display: inline-block;
+  text-align: left;
+}
+
+.survey-options label {
+  cursor: pointer;
+}
+
+input[type="radio"] {
+  accent-color: var(--accent);
+  margin-right: 0.4rem;
+  transform: scale(1.15);
+}
+
+input[type="submit"],
+button {
+  font-family: inherit;
+  font-size: 1em;
+  color: #5a1414;
+  background: var(--accent);
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 1.6rem;
+  cursor: pointer;
+  transition: filter 0.15s ease, transform 0.05s ease;
+}
+
+input[type="submit"]:hover,
+button:hover {
+  filter: brightness(1.07);
+}
+
+input[type="submit"]:active,
+button:active {
+  transform: scale(0.97);
+}
+
+input[type="submit"]:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+#surveyResult {
+  margin-top: 0.8rem;
+}
+
+/* ---------- Chessboard ---------- */
+
+#myBoard {
+  width: min(100%, 520px);
+  margin: 0 auto 1rem;
+}
+
+.status-line {
+  margin-top: 0.6rem;
+  font-weight: 600;
+}
+
+/* chessboard.js required classes */
+.clearfix-7da63 {
+  clear: both;
+}
+
+.board-b72b1 {
+  border: 4px solid #404040;
+  border-radius: 4px;
+  box-sizing: content-box;
+}
+
+.square-55d63 {
+  float: left;
+  position: relative;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+.white-1e1d7 {
+  background-color: #f0d9b5;
+  color: #da8a48;
+}
+
+.black-3c85d {
+  background-color: #da8a48;
+  color: #f0d9b5;
+}
+
+.highlight1-32417,
+.highlight2-9c5d2 {
+  box-shadow: inset 0 0 3px 3px rgb(170, 48, 48);
+}
+
+.notation-322f9 {
+  cursor: default;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 13px;
+  position: absolute;
+}
+
+.alpha-d2270 {
+  bottom: 1px;
+  right: 3px;
+}
+
+.numeric-fc462 {
+  top: 2px;
+  left: 2px;
+}
+
+/* ---------- Impressum / long text ---------- */
+
+.legal {
+  text-align: left;
+}
+
+.legal h2 {
+  text-align: center;
+}
+
+/* ---------- About page: technical documentation ---------- */
+
+.doc {
+  text-align: left;
+}
+
+.doc h2 {
+  text-align: center;
+}
+
+.doc figure {
+  margin: 1.4rem 0;
+}
+
+.doc figcaption {
+  color: var(--cream-muted);
+  font-size: 0.85em;
+  text-align: center;
+  margin-top: 0.5rem;
+}
+
+.doc svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* flow diagram of one engine move */
+.flow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.flow-step {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  padding: 0.5rem 1rem;
+  text-align: center;
+  max-width: 480px;
+}
+
+.flow-step.decision {
+  border-style: dashed;
+  font-style: italic;
+}
+
+.flow-arrow {
+  color: var(--cream-muted);
+  line-height: 1;
+}
+
+/* horizontal bar chart (node counts) */
+.bars {
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.bar-row {
+  margin-bottom: 0.7rem;
+}
+
+.bar-row .bar-label {
+  font-size: 0.9em;
+  margin-bottom: 0.15rem;
+}
+
+.bar-row .bar {
+  height: 1.15rem;
+  background: var(--accent);
+  border-radius: 5px;
+  min-width: 2px;
+}
+
+/* piece square table heatmap */
+.heatmap {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 2px;
+  max-width: 360px;
+  margin: 0 auto;
+}
+
+.heatmap div {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  border-radius: 3px;
+  color: var(--cream);
+}
+
+.h-n3 { background: #2e0b0b; }
+.h-n2 { background: #571818; }
+.h-n1 { background: #7c2626; }
+.h-p1 { background: #a5713e; }
+.h-p2 { background: #d0ac7c; color: #3a2410; }
+.h-p3 { background: #f0d9b5; color: #3a2410; }
+
+/* ---------- Footer ---------- */
+
+footer {
+  margin: 2.5rem 0 0;
+  padding: 1.2rem 1rem 1.6rem;
+  color: var(--cream-muted);
+  font-size: 0.9em;
+}
+
+/* ---------- Mobile ---------- */
+
+@media (max-width: 600px) {
+  .card {
+    padding: 1rem 0.9rem;
+  }
+
+  .site-nav a {
+    padding: 0.5rem 0.7rem;
+  }
+
+  main {
+    padding: 1rem 0.6rem 0;
+  }
+
+  hr {
+    width: 85%;
+  }
+}

@@ -1,127 +1,14 @@
 <!DOCTYPE html>
-
 <html lang="en">
-
-<style>
-    body {
-      background-color: rgb(170, 48, 48);
-      color: rgb(235, 235, 196);
-      text-align: center;
-      font-size: 1.5vw;
-      font-family: Garamond;
-      margin: 3% 25% 5% 25%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    header {
-      font-family: Garamond;
-      text-align: center;
-      color: rgb(235, 235, 196);
-    }
-    footer {
-      margin-top: 10%;
-    }
-
-    /* Here CSS for animation with balls */
-    .balls {
-      border-radius: 50%;
-      position: fixed;
-      width: 50px;
-      height: 50px;
-      top: 50%;
-      animation-name: jump;
-      animation-duration: 5s;
-      animation-iteration-count: infinite;
-    }
-    #purple_ball {
-      background: #A3F;
-      left: 10%;
-      animation-timing-function: linear;
-    }
-    #turquoise_ball {
-      background: #03A9AF;
-      left: 90%;
-      animation-timing-function: ease-in-out;
-    }
-    @keyframes jump {
-      50% {
-        top: 20%;
-      }
-    }
-
-
-    /* Here CSS for chessboard */
-    .clearfix-7da63 {
-      clear: both;
-    }
-    .board-b72b1 {
-      border: 0.5vw solid #404040;
-      box-sizing: content-box;
-    }
-
-    .square-55d63 {
-      float: left;
-      position: relative;
-
-    /* disable any native browser highlighting */
-      -webkit-touch-callout: none;
-      -webkit-user-select: none;
-      -khtml-user-select: none;
-      -moz-user-select: none;
-      -ms-user-select: none;
-      user-select: none;
-    }
-
-    .white-1e1d7 {
-      background-color: #f0d9b5;
-      color: #da8a48;
-    }
-
-    .black-3c85d {
-      background-color: #da8a48;
-      color: #f0d9b5;
-    }
-
-    .highlight1-32417, .highlight2-9c5d2 {
-      box-shadow: inset 0 0 3px 3px rgb(170, 48, 48);
-    }
-
-    .notation-322f9 {
-      cursor: default;
-      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-      font-size: 14px;
-      position: absolute;
-    }
-
-    .alpha-d2270 {
-      bottom: 1px;
-      right: 3px;
-    }
-
-    .numeric-fc462 {
-      top: 2px;
-      left: 2px;
-    }
-
-    #myBoard{
-      margin: auto;
-    }
-
-  </style>
-
-  <!-- get W3 CSS framework -->
-  <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
-
-
-  <div class="balls" id="purple_ball"></div>
-  <div class="balls" id="turquoise_ball"></div>
 
   <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1">
       <title>Khianat</title>
       <link rel="icon" type="image/x-icon" href="favicon.ico">
+
+      <!-- central stylesheet -->
+      <link rel="stylesheet" href="style.css">
 
       <!-- get jQuery from google -->
       <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
@@ -130,7 +17,7 @@
       <script type="text/javascript" src="chessboard-1.0.0.js"></script>
 
       <!-- get chess.js (Copyright (c) 2022, Jeff Hlywa (jhlywa@gmail.com))-->
-      <script type="text/javascript" src="chess.js-0.12.1/chess.js"></script>
+      <script type="text/javascript" src="chess.js"></script>
 
       <!-- get evaluation function of current chessboard-->
       <script type="text/javascript" src="evaluation.js"></script>
@@ -141,55 +28,108 @@
 
   <body>
 
-      <header>
-        <h1><u>Khianat - Chess website</u></h1>
+      <header class="site-header">
+        <h1>Khianat</h1>
+        <p class="tagline">Chess website &mdash; play against my self-made chess engine</p>
       </header>
 
-      <div class="w3-bar w3-black">
-        <a href="index.html" class="w3-bar-item w3-button">Home</a>
-        <a href="#Play" class="w3-bar-item w3-button">Play</a>
-        <a href="about.html" class="w3-bar-item w3-button">About</a>
-        <a href="blog.html" class="w3-bar-item w3-button">Blog</a>
-        <a href="impressum.html" class="w3-bar-item w3-button">Impressum</a>
-      </div>
+      <nav class="site-nav">
+        <a href="index.html" class="active">Home</a>
+        <a href="#Play">Play</a>
+        <a href="about.html">About</a>
+        <a href="blog.html">Blog</a>
+        <a href="impressum.html">Impressum</a>
+      </nav>
 
       <main>
-      <section>
-        <br>
+      <section class="card">
         Online chess game website with interesting game modes. Play against the chess engine Khianat.
-        <hr></hr>
+        <hr>
         <em>Chess is tedious, if it's played right.</em>
-        <hr></hr>
       </section>
 
-      <section>
-        <form>
+      <section class="card">
+        <form id="surveyForm">
           <fieldset>
             <legend>What level of chess player are you?</legend>
+            <div class="survey-options">
             <input id="one" type="radio" name="items" value="one" required>
             <label for="one">Absolute beginner &#128556;</label><br>
             <input id="two" type="radio" name="items" value="two">
             <label for="two">Ambitious student &#129299;</label><br>
             <input id="three" type="radio" name="items" value="three">
             <label for="three">Club player &#128513;</label><br>
-            <input id="three" type="radio" name="items" value="three">
-            <label for="three">Professional &#128527;</label><br>
-            <input id="three" type="radio" name="items" value="three">
-            <label for="three">I have a title &#128526;</label>
+            <input id="four" type="radio" name="items" value="four">
+            <label for="four">Professional &#128527;</label><br>
+            <input id="five" type="radio" name="items" value="five">
+            <label for="five">I have a title &#128526;</label>
+            </div>
           </fieldset>
           <input type="submit" name="submit" value="Submit">
         </form>
+        <div id="surveyResult"></div>
+
+        <script>
+          // Survey: send the vote to poll.php and show the percentages afterwards
+          var surveyLabels = {
+            one: 'Absolute beginner',
+            two: 'Ambitious student',
+            three: 'Club player',
+            four: 'Professional',
+            five: 'I have a title'
+          }
+
+          function showSurveyResults (counts) {
+            var total = 0
+            for (var key in surveyLabels) {
+              total += counts[key] || 0
+            }
+
+            var html = 'Thanks for your answer! ' + total + ' answer' + (total === 1 ? '' : 's') + ' so far:<br><br>'
+            for (var key in surveyLabels) {
+              var count = counts[key] || 0
+              var percent = total > 0 ? Math.round((count / total) * 100) : 0
+              html += surveyLabels[key] + ': ' + percent + '%<br>'
+            }
+            document.getElementById('surveyResult').innerHTML = html
+
+            // one vote per visit: lock the form after voting
+            var inputs = document.querySelectorAll('#surveyForm input')
+            for (var i = 0; i < inputs.length; i++) {
+              inputs[i].disabled = true
+            }
+          }
+
+          document.getElementById('surveyForm').addEventListener('submit', function (event) {
+            event.preventDefault()
+
+            var checked = document.querySelector('input[name="items"]:checked')
+            if (!checked) return
+
+            fetch('poll.php', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ vote: checked.value })
+            })
+              .then(function (response) {
+                if (!response.ok) throw new Error('poll request failed')
+                return response.json()
+              })
+              .then(showSurveyResults)
+              .catch(function () {
+                document.getElementById('surveyResult').innerHTML = 'Sorry, the poll is currently not available.'
+              })
+          })
+        </script>
       </section>
 
-      <section id="Play">
-        <form>
-        <fieldset>
-        <legend>Play against the computer! You have the white pieces.</legend>
-        <div id="myBoard" style="width: 550px"></div>
-        <label>Status:</label>
-        <div id="status"></div>
+      <section id="Play" class="card">
+        <h2>Play against the computer!</h2>
+        <p>You have the white pieces.</p>
+        <div id="myBoard"></div>
+        <div class="status-line">Status: <span id="status"></span></div>
       <noscript>Sorry, your browser does not support JavaScript!</noscript>
-  
+
       <script>
         var board = null
         var game = new Chess()
@@ -198,6 +138,18 @@
         var $status = $('#status')
         var $fen = $('#fen')
         var $pgn = $('#pgn')
+
+        // sounds for the end of the game
+        var yesSound = new Audio('mixkit-robot-says-yes-283.wav')
+        var noSound = new Audio('mixkit-robot-says-no-282.wav')
+
+        // wooden click for every move on the board
+        var moveSound = new Audio('351518__mh2o__chess-move-on-alabaster.wav')
+
+        function playMoveSound () {
+          moveSound.currentTime = 0
+          moveSound.play()
+        }
 
         function removeGreySquares () {
           $('#myBoard .square-55d63').css('background', '')
@@ -209,7 +161,7 @@
           var background = whiteSquareGrey
           if ($square.hasClass('black-3c85d')) {
             background = blackSquareGrey
-          }     
+          }
 
           $square.css('background', background)
         }
@@ -220,7 +172,7 @@
 
         // only pick up pieces for the side to move
         if ((game.turn() === 'w' && piece.search(/^b/) !== -1) ||
-        (game.turn() === 'b' && piece.search(/^w/) !== -1)) 
+        (game.turn() === 'b' && piece.search(/^w/) !== -1))
         return false
         }
 
@@ -235,14 +187,18 @@
 
         // illegal move
         if (move === null) return 'snapback'
-        
+
+        playMoveSound()
+
         // make best legal move for black
-        //document.getElementById("demo").innerHTML = game.fen();
-        //document.getElementById("demo1").innerHTML = game.pgn();
         window.setTimeout(makeMove, 250)
-        //document.getElementById("demo2").innerHTML = game.moves();
 
         updateStatus()
+
+        // show that the engine is calculating (the search may take a few seconds)
+        if (!game.game_over()) {
+          $status.html('Khianat is thinking&hellip;')
+        }
         }
 
         function onMouseoverSquare (square, piece) {
@@ -285,6 +241,14 @@
         // checkmate?
         if (game.in_checkmate()) {
         status = 'Game over, ' + moveColor + ' is in checkmate.'
+
+        // play sound: "Yes" if the computer checkmated the player (White),
+        // "No" if the player checkmated the computer (Black)
+        if (moveColor === 'White') {
+        yesSound.play()
+        } else {
+        noSound.play()
+        }
         }
 
         // draw?
@@ -321,39 +285,18 @@
         }
         board = Chessboard('myBoard', config)
 
+        // keep the board size in sync with the screen (mobile friendly)
+        $(window).on('resize', board.resize)
+
         updateStatus()
         </script>
 
-        </fieldset>
-        </form>
       </section>
-
-      <p id="demo"></p>
-      <p id="demo1"></p>
-      <p id="demo2"></p>
-      <p id="demo3"></p>
-      <p id="demo4"></p>
-      <p id="demo5"></p>
-      <p id="demo6"></p>
 
       </main>
 
       <footer>
-        <form>
-          <p>Sign up to the newsletter!</p>
-          <label for="email">Email:</label>
-          <input
-             type="email"
-             name="email"
-             id="email"
-             class="form-control"
-             placeholder="Enter your email"
-             required
-             />
-          <input type="submit" name="submit" value="Submit">
-        </form>
-        <br>
-        Copyright &copy; 2022 Benjamin Raphael Berger
+        Copyright &copy; 2026 Benjamin Berger
       </footer>
 
   </body>

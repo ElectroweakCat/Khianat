@@ -1,12 +1,24 @@
-/* 
- * Piece Square Tables, adapted from Sunfish.py:
- * https://github.com/thomasahle/sunfish/blob/master/sunfish.py
+/*
+ * evaluation.js - static board evaluation for the Khianat chess engine.
+ *
+ * The evaluation combines:
+ *  - material values per piece
+ *  - piece square tables (PST), adapted from Sunfish.py:
+ *    https://github.com/thomasahle/sunfish/blob/master/sunfish.py
+ *  - a separate king table for the endgame (centralize the king)
+ *
+ * evaluateBoard(game) returns the score in centipawn-like units from
+ * White's point of view: positive = good for White, negative = good for Black.
  */
 
+// Material values (the king is not counted as material; mate is handled by the search)
+var PIECE_VALUES = { p: 100, n: 280, b: 320, r: 479, q: 929, k: 0 };
 
-var weights = { 'p': 100, 'n': 280, 'b': 320, 'r': 479, 'q': 929, 'k': 60000, 'k_e': 60000 };
-var pst_w = {
-    'p':[
+// Piece square tables from White's point of view.
+// Row 0 = rank 8 (Black's back rank), row 7 = rank 1 (White's back rank),
+// which matches the layout of game.board() from chess.js.
+var PST_W = {
+    'p': [
             [ 100, 100, 100, 100, 105, 100, 100,  100],
             [  78,  83,  86,  73, 102,  82,  85,  90],
             [   7,  29,  21,  44,  40,  31,  44,   7],
@@ -16,7 +28,7 @@ var pst_w = {
             [ -31,   8,  -7, -37, -36, -14,   3, -31],
             [   0,   0,   0,   0,   0,   0,   0,   0]
         ],
-    'n': [ 
+    'n': [
             [-66, -53, -75, -75, -10, -55, -58, -70],
             [ -3,  -6, 100, -36,   4,  62,  -4, -14],
             [ 10,  67,   1,  74,  73,  27,  62,  -2],
@@ -26,7 +38,7 @@ var pst_w = {
             [-23, -15,   2,   0,   2,   0, -23, -20],
             [-74, -23, -26, -24, -19, -35, -22, -69]
         ],
-    'b': [ 
+    'b': [
             [-59, -78, -82, -76, -23,-107, -37, -50],
             [-11,  20,  35, -42, -39,  31,   2, -22],
             [ -9,  39, -32,  41,  52, -10,  28, -14],
@@ -36,7 +48,7 @@ var pst_w = {
             [ 19,  20,  11,   6,   7,   6,  20,  16],
             [ -7,   2, -15, -12, -14, -15, -10, -10]
         ],
-    'r': [  
+    'r': [
             [ 35,  29,  33,   4,  37,  33,  56,  50],
             [ 55,  29,  56,  67,  55,  62,  34,  60],
             [ 19,  35,  28,  33,  45,  27,  25,  15],
@@ -46,7 +58,7 @@ var pst_w = {
             [-53, -38, -31, -26, -29, -43, -44, -53],
             [-30, -24, -18,   5,  -2, -18, -31, -32]
         ],
-    'q': [   
+    'q': [
             [  6,   1,  -8,-104,  69,  24,  88,  26],
             [ 14,  32,  60, -10,  20,  76,  57,  24],
             [ -2,  43,  32,  60,  72,  63,  43,   2],
@@ -56,7 +68,7 @@ var pst_w = {
             [-36, -18,   0, -19, -15, -15, -21, -38],
             [-39, -30, -31, -13, -31, -36, -34, -42]
         ],
-    'k': [  
+    'k': [
             [  4,  54,  47, -99, -99,  60,  83, -62],
             [-32,  10,  55,  56,  56,  55,  10,   3],
             [-62,  12, -57,  44, -67,  28,  37, -31],
@@ -67,7 +79,7 @@ var pst_w = {
             [ 17,  30,  -3, -14,   6,  -1,  40,  18]
         ],
 
-    // Endgame King Table
+    // Endgame king table: the king should walk to the center
     'k_e': [
             [-50, -40, -30, -20, -20, -30, -40, -50],
             [-30, -20, -10,   0,   0, -10, -20, -30],
@@ -79,81 +91,54 @@ var pst_w = {
             [-50, -30, -30, -30, -30, -30, -30, -50]
         ]
 };
-var pst_b = {
-    'p': pst_w['p'].slice().reverse(),
-    'n': pst_w['n'].slice().reverse(),
-    'b': pst_w['b'].slice().reverse(),
-    'r': pst_w['r'].slice().reverse(),
-    'q': pst_w['q'].slice().reverse(),
-    'k': pst_w['k'].slice().reverse(),
-    'k_e': pst_w['k_e'].slice().reverse()
+
+/*
+ * A position counts as an endgame when little non-pawn material is left
+ * (roughly: both sides together have less than a rook + bishop each).
+ * In the endgame the king uses the k_e table and becomes an active piece.
+ */
+var ENDGAME_MATERIAL_LIMIT = 2 * (PIECE_VALUES.r + PIECE_VALUES.b);
+
+function isEndgame (board) {
+    var nonPawnMaterial = 0;
+    for (var row = 0; row < 8; row++) {
+        for (var col = 0; col < 8; col++) {
+            var piece = board[row][col];
+            if (piece && piece.type !== 'p' && piece.type !== 'k') {
+                nonPawnMaterial += PIECE_VALUES[piece.type];
+            }
+        }
+    }
+    return nonPawnMaterial <= ENDGAME_MATERIAL_LIMIT;
 }
 
-var pstOpponent = {'w': pst_b, 'b': pst_w};
-var pstSelf = {'w': pst_w, 'b': pst_b};
-
-/* 
- * Evaluates the board at this point in time, 
- * using the material weights and piece square tables.
+/*
+ * Full board evaluation from White's point of view.
+ *
+ * White pieces read the tables directly (row 0 = rank 8).
+ * Black pieces read the tables vertically mirrored (row 7 - row),
+ * so both sides use the same, correctly oriented values.
  */
-function evaluateBoard (move, prevSum, color) 
-{
-    var from = [8 - parseInt(move.from[1]), move.from.charCodeAt(0) - 'a'.charCodeAt(0)];
-    var to = [8 - parseInt(move.to[1]), move.to.charCodeAt(0) - 'a'.charCodeAt(0)];
+function evaluateBoard (game) {
+    var board = game.board();
+    var endgame = isEndgame(board);
+    var score = 0;
 
-    // Change endgame behavior for kings
-    if (prevSum < -1500)
-    {
-        if (move.piece === 'k') {move.piece = 'k_e'}
-        else if (move.captured === 'k') {move.captured = 'k_e'}
-    }
+    for (var row = 0; row < 8; row++) {
+        for (var col = 0; col < 8; col++) {
+            var piece = board[row][col];
+            if (!piece) continue;
 
-    if ('captured' in move)
-    {
-        // Opponent piece was captured (good for us)
-        if (move.color === color)
-        {
-            prevSum += (weights[move.captured] + pstOpponent[move.color][move.captured][to[0]][to[1]]);
-        }
-        // Our piece was captured (bad for us)
-        else
-        {
-            prevSum -= (weights[move.captured] + pstSelf[move.color][move.captured][to[0]][to[1]]);
+            var tableKey = (piece.type === 'k' && endgame) ? 'k_e' : piece.type;
+            var table = PST_W[tableKey];
+
+            if (piece.color === 'w') {
+                score += PIECE_VALUES[piece.type] + table[row][col];
+            } else {
+                score -= PIECE_VALUES[piece.type] + table[7 - row][col];
+            }
         }
     }
 
-    if (move.flags.includes('p'))
-    {
-        // NOTE: promote to queen for simplicity
-        move.promotion = 'q';
-
-        // Our piece was promoted (good for us)
-        if (move.color === color)
-        {
-            prevSum -= (weights[move.piece] + pstSelf[move.color][move.piece][from[0]][from[1]]);
-            prevSum += (weights[move.promotion] + pstSelf[move.color][move.promotion][to[0]][to[1]]);
-        }
-        // Opponent piece was promoted (bad for us)
-        else
-        {
-            prevSum += (weights[move.piece] + pstSelf[move.color][move.piece][from[0]][from[1]]);
-            prevSum -= (weights[move.promotion] + pstSelf[move.color][move.promotion][to[0]][to[1]]);
-        }
-    }
-    else
-    {
-        // The moved piece still exists on the updated board, so we only need to update the position value
-        if (move.color !== color)
-        {
-            prevSum += pstSelf[move.color][move.piece][from[0]][from[1]];
-            prevSum -= pstSelf[move.color][move.piece][to[0]][to[1]];
-        }
-        else
-        {
-            prevSum -= pstSelf[move.color][move.piece][from[0]][from[1]];
-            prevSum += pstSelf[move.color][move.piece][to[0]][to[1]];
-        }
-    }
-
-    return prevSum;
+    return score;
 }
