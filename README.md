@@ -1,22 +1,51 @@
-# Online chess engine Khianat
-Play against the chess engine online on https://khianat.org/
+# Khianat
 
-## About
-Khianat is a very simple chess engine/AI in JavaScript. 
+A hand-built chess engine in plain JavaScript, playable in the browser.
 
-The primary goal of the chess engine is the decision-making (AI) part of the application. All functionality outside the scope of the AI is implemented using external libraries:
-- Chessboard GUI: Using the chessboard.js API (Chris Oakman (https://chessboardjs.com/index.html)
-- Game Mechanics: Using the chess.js API (Jeff Hlywa (https://github.com/jhlywa/chess.js)
+**Play it live at [khianat.org](https://khianat.org/)** — you have the white pieces.
 
-## How does it work?
-1. Head over to the link
+## Motivation
 
-2. Play as white by dragging a piece to your desired location. The AI always plays with the black pieces.
+Khianat combines my passion for chess with my interest in software development and artificial intelligence. The goal was never to compete with Stockfish, but to build my own opponent from scratch and understand every single move it makes. The engine, the website and the design are all my own work, developed continuously since 2022 (the [blog](https://khianat.org/blog.html) documents the journey).
 
-3. The game will automatically stop as soon as one player is checkmated. Click Restart to start a new game.
+## How the engine works
 
-## Note
-This is my first larger JavaScript project so the code might lack of efficiency and proper notation. Furthermore, at the moment the website lacks accessibility, especially for smaller screens. It is basically unusable for smartphones.
+Khianat runs entirely in the browser — no engine server, no cloud.
+
+1. **Opening book:** for the first moves, a small hand-written repertoire with weighted random replies (Sicilian, Modern defense, occasionally the Englund gambit).
+2. **Search:** negamax (minimax) with alpha-beta pruning and iterative deepening on a ~3 second time budget, typically reaching depth 4–5 in the middlegame. Moves are ordered (captures and promotions first, previous best move first) so pruning cuts the tree by roughly two orders of magnitude.
+3. **Quiescence search:** capture sequences are played out at the leaves to avoid horizon-effect blunders.
+4. **Evaluation:** material values plus piece square tables (adapted from Sunfish), with a separate king table for the endgame. Checkmate is scored by distance to mate; stalemate and draws count as zero.
+
+Estimated playing strength: roughly 1400–1600 Elo against human casual players. A detailed, illustrated explanation lives on the [About page](https://khianat.org/about.html).
+
+## Tech stack
+
+- **Engine & UI:** vanilla JavaScript, HTML, CSS — no frameworks, no build step, no tracking
+- **Chess rules:** [chess.js](https://github.com/jhlywa/chess.js) (move generation & validation)
+- **Board rendering:** [chessboard.js](https://chessboardjs.com/) (drag & drop board)
+- **Poll backend:** a single small PHP script storing anonymous counts in JSON
+
+## Features
+
+- Play against the engine with move sounds, last-move highlighting and a mobile-friendly responsive board
+- Technical documentation page with hand-drawn SVG diagrams of the search
+- Visitor poll with live percentages
+- Development blog
+
+## Run locally
+
+```bash
+git clone https://github.com/ElectroweakCat/Khianat.git
+cd Khianat
+```
+
+Open `index.html` in a browser — the game works as-is. Only the poll needs PHP:
+
+```bash
+php -S localhost:8000
+```
 
 ## License
-Use of this project is governed by the [MIT License](LICENSE).
+
+[MIT](LICENSE) for my own code. Third-party components keep their own licenses: chess.js (BSD-2-Clause, Jeff Hlywa), chessboard.js (MIT, Chris Oakman), piece values and piece square tables adapted from [Sunfish](https://github.com/thomasahle/sunfish) (Thomas Ahle), sound samples from Mixkit and freesound.org (user mh2o).
