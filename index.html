@@ -128,6 +128,7 @@
         <p>You have the white pieces.</p>
         <div id="myBoard"></div>
         <div class="status-line">Status: <span id="status"></span></div>
+        <button id="newGameBtn" type="button">New game</button>
       <noscript>Sorry, your browser does not support JavaScript!</noscript>
 
       <script>
@@ -138,6 +139,7 @@
         var $status = $('#status')
         var $fen = $('#fen')
         var $pgn = $('#pgn')
+        var thinkTimer = null
 
         // sounds for the end of the game
         var yesSound = new Audio('mixkit-robot-says-yes-283.wav')
@@ -189,9 +191,10 @@
         if (move === null) return 'snapback'
 
         playMoveSound()
+        highlightMove(move.from, move.to)
 
         // make best legal move for black
-        window.setTimeout(makeMove, 250)
+        thinkTimer = window.setTimeout(makeMove, 250)
 
         updateStatus()
 
@@ -222,6 +225,21 @@
 
         function onMouseoutSquare (square, piece) {
           removeGreySquares()
+        }
+
+        // mark the from and to squares of the move that was just played
+        function highlightMove (from, to) {
+          $('#myBoard .square-55d63').removeClass('highlight-last')
+          $('#myBoard .square-' + from).addClass('highlight-last')
+          $('#myBoard .square-' + to).addClass('highlight-last')
+        }
+
+        function newGame () {
+          window.clearTimeout(thinkTimer) // in case Khianat was about to move
+          game.reset()
+          board.start()
+          $('#myBoard .square-55d63').removeClass('highlight-last')
+          updateStatus()
         }
 
         // update the board position after the piece snap
@@ -288,6 +306,8 @@
         // keep the board size in sync with the screen (mobile friendly)
         $(window).on('resize', board.resize)
 
+        $('#newGameBtn').on('click', newGame)
+
         updateStatus()
         </script>
 
@@ -296,7 +316,7 @@
       </main>
 
       <footer>
-        Copyright &copy; 2026 Benjamin Berger
+        Copyright &copy; 2026 Benjamin Berger &middot; <a href="https://github.com/ElectroweakCat/Khianat">Source on GitHub</a>
       </footer>
 
   </body>

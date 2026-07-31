@@ -337,6 +337,7 @@ function getBestMove (game) {
 
 function makeMove () {
     if (game.game_over()) return;
+    if (game.turn() !== 'b') return; // Khianat plays Black only
 
     // 1. try the opening book, 2. otherwise search
     var move = getBookMove(game);
@@ -345,8 +346,11 @@ function makeMove () {
     }
     if (move === null) return; // should never happen, but never crash the UI
 
-    game.move(move);
+    var played = game.move(move);
+    if (played === null) return;
+
     board.position(game.fen());
     playMoveSound();
+    highlightMove(played.from, played.to);
     updateStatus();
 }

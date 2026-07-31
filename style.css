@@ -237,6 +237,15 @@ input[type="submit"]:disabled {
   box-shadow: inset 0 0 3px 3px rgb(170, 48, 48);
 }
 
+/* from and to square of the move that was just played */
+.highlight-last {
+  box-shadow: inset 0 0 3px 3px rgb(170, 48, 48);
+}
+
+#newGameBtn {
+  margin-top: 0.9rem;
+}
+
 .notation-322f9 {
   cursor: default;
   font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
