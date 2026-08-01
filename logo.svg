@@ -1,0 +1,35 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Khianat logo: a pawn casting the shadow of a queen">
+  <!-- The traitor pawn: looks like a pawn, plays like a queen. -->
+
+  <!-- queen shadow on the wall -->
+  <g transform="translate(300,448) skewX(-7)" fill="#3a0d0d" opacity="0.82">
+    <!-- base -->
+    <rect x="-74" y="-28" width="148" height="20" rx="9"/>
+    <rect x="-62" y="-52" width="124" height="18" rx="8"/>
+    <!-- body -->
+    <polygon points="-46,-58 46,-58 26,-300 -26,-300"/>
+    <!-- collar -->
+    <rect x="-40" y="-312" width="80" height="16" rx="7"/>
+    <!-- crown spikes -->
+    <polygon points="-38,-318 -22,-318 -31,-382"/>
+    <polygon points="-8,-318 8,-318 0,-396"/>
+    <polygon points="22,-318 38,-318 31,-382"/>
+    <!-- crown pearls -->
+    <circle cx="-31" cy="-390" r="9"/>
+    <circle cx="0" cy="-404" r="9"/>
+    <circle cx="31" cy="-390" r="9"/>
+  </g>
+
+  <!-- the pawn -->
+  <g transform="translate(192,448)" fill="#f0d9b5">
+    <!-- base -->
+    <rect x="-56" y="-20" width="112" height="16" rx="8"/>
+    <rect x="-44" y="-40" width="88" height="14" rx="7"/>
+    <!-- body -->
+    <polygon points="-34,-44 34,-44 17,-186 -17,-186"/>
+    <!-- collar -->
+    <rect x="-30" y="-198" width="60" height="13" rx="6"/>
+    <!-- head -->
+    <circle cx="0" cy="-238" r="40"/>
+  </g>
+</svg>
