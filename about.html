@@ -57,7 +57,7 @@
               <div class="flow-arrow">yes &darr; &nbsp;&nbsp;&nbsp; no &darr;&darr;</div>
               <div class="flow-step">Play the book reply (weighted random choice, checked against the legal moves)</div>
               <div class="flow-arrow">&darr;&darr;</div>
-              <div class="flow-step">Iterative deepening: search to depth 1, then 2, then 3 &hellip; until the 3 second budget is spent. Each search is a negamax tree walk with alpha-beta pruning, move ordering and quiescence search at the leaves.</div>
+              <div class="flow-step">Iterative deepening: search to depth 1, then 2, then 3 &hellip; until the time budget of the chosen difficulty is spent (up to 5 seconds at maximum strength). Each search is a negamax tree walk with alpha-beta pruning, move ordering and quiescence search at the leaves.</div>
               <div class="flow-arrow">&darr;</div>
               <div class="flow-step">Play the best move of the last fully finished depth, update board, sound and status</div>
             </div>
@@ -128,7 +128,8 @@
             </svg>
             <figcaption>A tiny two-ply tree. Move b looks tempting (+9), but the opponent would answer with the +2 line, so move a with a safe +3 is better.</figcaption>
           </figure>
-          <p><strong>Iterative deepening.</strong> Khianat does not search one fixed depth. It searches depth 1, then depth 2, then depth 3 and so on until its 3 second budget is used up, and plays the best move of the last fully completed depth. This has two nice effects: the thinking time is constant, and in simple positions (especially endgames) the search automatically reaches much deeper. If only one legal move exists, it is played instantly.</p>
+          <p><strong>Iterative deepening.</strong> Khianat does not search one fixed depth. It searches depth 1, then depth 2, then depth 3 and so on until its time budget is used up, and plays the best move of the last fully completed depth. This has two nice effects: the thinking time is predictable, and in simple positions (especially endgames) the search automatically reaches much deeper. If only one legal move exists, it is played instantly.</p>
+          <p><strong>Difficulty levels.</strong> The five difficulty levels on the Play page simply control this search: level 1 stops at depth 1 after half a second, the levels in between raise the depth cap and thinking time step by step, and level 5 is the unrestricted engine with a full 5 second budget. Same brain, shorter or longer leash.</p>
         </section>
 
         <section class="card doc">
@@ -209,12 +210,12 @@
           <h2>Performance and stability</h2>
           <p>Everything runs single-threaded in JavaScript, so the search has to be a bit careful:</p>
           <p>The clock is only checked every 1024 nodes, because reading the system time is surprisingly expensive. When the time is up, the search does not abort with an exception; it sets a flag and unwinds level by level, so every trial move is guaranteed to be taken back (a lesson learned the hard way, see blog entry #8). As a second safety net the engine remembers the length of the real game history before thinking and restores it afterwards, so the game state can never be corrupted by the search.</p>
-          <p>With all of this, Khianat typically reaches depth 4 to 5 in the middlegame and clearly deeper in the endgame, at about 3 seconds per move.</p>
+          <p>With all of this, Khianat at maximum difficulty (5 seconds per move) typically reaches depth 5 in the middlegame and clearly deeper in the endgame.</p>
         </section>
 
         <section class="card doc">
           <h2>Playing strength</h2>
-          <p>My honest estimate: around 1400 to 1600 Elo against human casual players. Khianat calculates short tactics reliably, does not hang pieces to simple threats and wins won positions cleanly. Its known weaknesses: the evaluation knows nothing about pawn structure, king safety or mobility, there is no transposition table (the same position reached by different move orders is searched again), and quiet positional play beyond its search depth escapes it. Patient, solid play is the best recipe against it.</p>
+          <p>My honest estimate: around 1500 to 1700 Elo against human casual players at the highest difficulty. Khianat calculates short tactics reliably, does not hang pieces to simple threats and wins won positions cleanly. The lower difficulty levels scale this down to something a beginner can beat. Its known weaknesses: the evaluation knows nothing about pawn structure, king safety or mobility, there is no transposition table (the same position reached by different move orders is searched again), and quiet positional play beyond its search depth escapes it. Patient, solid play is the best recipe against it.</p>
           <figure>
             <svg viewBox="0 0 700 310" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Elo history of Khianat">
               <g stroke="rgba(235,235,196,0.2)" stroke-width="1">
@@ -229,11 +230,11 @@
                 <text x="62" y="139">1000</text>
                 <text x="62" y="76">1500</text>
               </g>
-              <polyline points="140,229 350,204 580,73" fill="none" stroke="#f0d9b5" stroke-width="2.5"/>
+              <polyline points="140,229 350,204 580,52" fill="none" stroke="#f0d9b5" stroke-width="2.5"/>
               <g fill="#f0d9b5" stroke="#6f1d1d" stroke-width="1.5">
                 <circle cx="140" cy="229" r="6"/>
                 <circle cx="350" cy="204" r="6"/>
-                <circle cx="580" cy="73" r="6"/>
+                <circle cx="580" cy="52" r="6"/>
               </g>
               <g fill="rgba(235,235,196,0.75)" font-size="13" text-anchor="middle" font-family="Georgia, serif">
                 <text x="140" y="290">random moves</text>
@@ -241,7 +242,7 @@
                 <text x="580" y="290">alpha-beta search</text>
                 <text x="140" y="212">~250</text>
                 <text x="350" y="187">~450</text>
-                <text x="580" y="56">~1500</text>
+                <text x="580" y="35">~1500&#8211;1700</text>
               </g>
             </svg>
             <figcaption>Estimated strength of the three engine generations so far. These are honest guesses, not measured ratings: Khianat has never played a rated game.</figcaption>

@@ -81,7 +81,7 @@
             five: 'I have a title'
           }
 
-          function showSurveyResults (counts) {
+          function showSurveyResults (counts, vote) {
             var total = 0
             for (var key in surveyLabels) {
               total += counts[key] || 0
@@ -93,6 +93,16 @@
               var percent = total > 0 ? Math.round((count / total) * 100) : 0
               html += surveyLabels[key] + ': ' + percent + '%<br>'
             }
+
+            // suggest a matching difficulty for the game below
+            var levelMap = { one: 1, two: 2, three: 3, four: 4, five: 5 }
+            var suggested = levelMap[vote]
+            if (suggested) {
+              document.getElementById('difficulty').value = String(suggested)
+              setDifficulty(suggested)
+              html += '<br>Khianat set its difficulty to ' + suggested + ' to match your level. You can change it any time below.'
+            }
+
             document.getElementById('surveyResult').innerHTML = html
 
             // one vote per visit: lock the form after voting
@@ -117,7 +127,9 @@
                 if (!response.ok) throw new Error('poll request failed')
                 return response.json()
               })
-              .then(showSurveyResults)
+              .then(function (counts) {
+                showSurveyResults(counts, checked.value)
+              })
               .catch(function () {
                 document.getElementById('surveyResult').innerHTML = 'Sorry, the poll is currently not available.'
               })
@@ -127,7 +139,17 @@
 
       <section id="Play" class="card">
         <h2>Play against the computer!</h2>
-        <p>You have the white pieces.</p>
+        <p>You have the white pieces. Drag a piece, or click it and then click its target square.</p>
+        <div class="difficulty-row">
+          <label for="difficulty">Difficulty:</label>
+          <select id="difficulty">
+            <option value="1">1 &middot; Beginner</option>
+            <option value="2">2 &middot; Casual</option>
+            <option value="3" selected>3 &middot; Club</option>
+            <option value="4">4 &middot; Strong</option>
+            <option value="5">5 &middot; Maximum</option>
+          </select>
+        </div>
         <div id="myBoard"></div>
         <div class="status-line">Status: <span id="status"></span></div>
         <button id="newGameBtn" type="button">New game</button>
@@ -178,6 +200,25 @@
         if ((game.turn() === 'w' && piece.search(/^b/) !== -1) ||
         (game.turn() === 'b' && piece.search(/^w/) !== -1))
         return false
+
+        // picking up an own piece replaces any click selection
+        clearClickSelection()
+        }
+
+        // everything that happens after the player made a legal move
+        function afterPlayerMove (move) {
+          playMoveSound()
+          highlightMove(move.from, move.to)
+
+          // make best legal move for black
+          thinkTimer = window.setTimeout(makeMove, 250)
+
+          updateStatus()
+
+          // show that the engine is calculating (the search may take a few seconds)
+          if (!game.game_over()) {
+            $status.html('Khianat is thinking&hellip;')
+          }
         }
 
         function onDrop (source, target) {
@@ -189,21 +230,14 @@
         promotion: 'q' // always promote to a queen for simplicity
         })
 
-        // illegal move
-        if (move === null) return 'snapback'
-
-        playMoveSound()
-        highlightMove(move.from, move.to)
-
-        // make best legal move for black
-        thinkTimer = window.setTimeout(makeMove, 250)
-
-        updateStatus()
-
-        // show that the engine is calculating (the search may take a few seconds)
-        if (!game.game_over()) {
-          $status.html('Khianat is thinking&hellip;')
+        // illegal move: keep a click selection (e.g. piece dropped back home)
+        if (move === null) {
+          if (clickFrom !== null) showTargets(clickFrom)
+          return 'snapback'
         }
+
+        clearClickSelection()
+        afterPlayerMove(move)
         }
 
         function onMouseoverSquare (square, piece) {
@@ -227,7 +261,87 @@
 
         function onMouseoutSquare (square, piece) {
           removeGreySquares()
+
+          // keep the targets of a click selection visible
+          if (clickFrom !== null) {
+            showTargets(clickFrom)
+          }
         }
+
+        // ----- click-to-move -----
+
+        var clickFrom = null
+
+        function showTargets (square) {
+          var moves = game.moves({ square: square, verbose: true })
+          for (var i = 0; i < moves.length; i++) {
+            greySquare(moves[i].to)
+          }
+        }
+
+        function clearClickSelection () {
+          clickFrom = null
+          removeGreySquares()
+          $('#myBoard .square-55d63').removeClass('highlight-selected')
+        }
+
+        function selectSquare (square) {
+          var piece = game.get(square)
+          if (!piece || piece.color !== 'w') return
+          clickFrom = square
+          $('#myBoard .square-' + square).addClass('highlight-selected')
+          showTargets(square)
+        }
+
+        function handleSquareTap (square) {
+          if (game.game_over()) return
+          if (game.turn() !== 'w') return
+
+          // first tap: select one of your pieces
+          // (chessboard.js may start a drag at the same time, that is fine)
+          if (clickFrom === null) {
+            selectSquare(square)
+            return
+          }
+
+          // tapping the selected piece again keeps it selected
+          if (square === clickFrom) return
+
+          var move = game.move({
+            from: clickFrom,
+            to: square,
+            promotion: 'q' // always promote to a queen for simplicity
+          })
+
+          // not a legal target: try to select the tapped piece instead
+          if (move === null) {
+            clearClickSelection()
+            selectSquare(square)
+            return
+          }
+
+          clearClickSelection()
+          board.position(game.fen())
+          afterPlayerMove(move)
+        }
+
+        // "click" events never reach the squares because chessboard.js starts
+        // its drag mode on mousedown/touchstart, so listen to those instead.
+        // A touch also fires a delayed synthetic mousedown: ignore that one.
+        var lastTouchTime = 0
+
+        $('#myBoard').on('touchstart', '.square-55d63', function () {
+          lastTouchTime = Date.now()
+          var square = $(this).attr('data-square')
+          if (square) handleSquareTap(square)
+        })
+
+        $('#myBoard').on('mousedown', '.square-55d63', function (event) {
+          if (event.which !== 1) return // left button only
+          if (Date.now() - lastTouchTime < 500) return
+          var square = $(this).attr('data-square')
+          if (square) handleSquareTap(square)
+        })
 
         // mark the from and to squares of the move that was just played
         function highlightMove (from, to) {
@@ -240,6 +354,7 @@
           window.clearTimeout(thinkTimer) // in case Khianat was about to move
           game.reset()
           board.start()
+          clearClickSelection()
           $('#myBoard .square-55d63').removeClass('highlight-last')
           updateStatus()
         }
@@ -309,6 +424,10 @@
         $(window).on('resize', board.resize)
 
         $('#newGameBtn').on('click', newGame)
+
+        $('#difficulty').on('change', function () {
+          setDifficulty(parseInt(this.value, 10))
+        })
 
         updateStatus()
         </script>

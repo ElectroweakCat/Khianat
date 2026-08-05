@@ -25,7 +25,23 @@
 // Search configuration
 // ---------------------------------------------------------------------------
 
-var TIME_BUDGET_MS = 3000;   // thinking time per move
+// Difficulty levels: how long and how deep Khianat may think per move.
+// Level 5 is the full engine, lower levels cap the depth and thinking time.
+var DIFFICULTY_LEVELS = {
+    1: { timeMs: 500,  maxDepth: 1 },
+    2: { timeMs: 1000, maxDepth: 2 },
+    3: { timeMs: 2000, maxDepth: 3 },
+    4: { timeMs: 3000, maxDepth: 5 },
+    5: { timeMs: 5000, maxDepth: 40 }
+};
+var currentDifficulty = 3;
+
+function setDifficulty (level) {
+    if (DIFFICULTY_LEVELS[level]) {
+        currentDifficulty = level;
+    }
+}
+
 var MAX_SEARCH_DEPTH = 40;   // safety cap for iterative deepening
 var MATE_VALUE = 1000000;    // base score for checkmate
 
@@ -285,7 +301,8 @@ function searchRoot (game, depth, colorSign, rootMoves) {
  * timeout can never produce a half-searched, bad move.
  */
 function getBestMove (game) {
-    searchDeadline = Date.now() + TIME_BUDGET_MS;
+    var level = DIFFICULTY_LEVELS[currentDifficulty];
+    searchDeadline = Date.now() + level.timeMs;
     searchNodes = 0;
     searchAborted = false;
 
@@ -300,7 +317,7 @@ function getBestMove (game) {
 
     var bestMove = rootMoves[0];
 
-    for (var depth = 1; depth <= MAX_SEARCH_DEPTH; depth++) {
+    for (var depth = 1; depth <= level.maxDepth; depth++) {
         var result = searchRoot(game, depth, colorSign, rootMoves);
 
         // time ran out during this depth: keep the move of the last finished depth
