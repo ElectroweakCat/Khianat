@@ -99,7 +99,7 @@
             var suggested = levelMap[vote]
             if (suggested) {
               document.getElementById('difficulty').value = String(suggested)
-              setDifficulty(suggested)
+              engineDifficulty = suggested
               html += '<br>Khianat set its difficulty to ' + suggested + ' to match your level. You can change it any time below.'
             }
 
@@ -164,6 +164,66 @@
         var $fen = $('#fen')
         var $pgn = $('#pgn')
         var thinkTimer = null
+        var engineDifficulty = 3
+
+        // ----- engine in a Web Worker -----
+        // The search runs in a background thread so the page stays responsive.
+        // If the browser refuses the worker (e.g. when the site is opened as a
+        // local file), the engine falls back to thinking in the foreground.
+
+        var engineWorker = null
+        var searchId = 0
+
+        try {
+          engineWorker = new Worker('engine-worker.js')
+          engineWorker.onmessage = function (event) {
+            if (event.data.id !== searchId) return // stale reply, e.g. after New game
+            finishEngineMove(event.data.move === null ? null
+              : (event.data.move.san ? event.data.move.san : event.data.move))
+          }
+          engineWorker.onerror = function () {
+            // worker broke: think in the foreground from now on
+            engineWorker = null
+            makeMove()
+          }
+        } catch (e) {
+          engineWorker = null
+        }
+
+        // Khianat's move: dispatch to the worker, or think right here
+        function makeMove () {
+          if (game.game_over()) return
+          if (game.turn() !== 'b') return // Khianat plays Black only
+
+          if (engineWorker) {
+            searchId++
+            engineWorker.postMessage({
+              id: searchId,
+              history: game.history(),
+              difficulty: engineDifficulty
+            })
+            return
+          }
+
+          // fallback: search on the main thread
+          setDifficulty(engineDifficulty)
+          var move = getBookMove(game)
+          if (move === null) move = getBestMove(game)
+          finishEngineMove(move)
+        }
+
+        function finishEngineMove (move) {
+          if (move === null) return
+          if (game.game_over() || game.turn() !== 'b') return
+
+          var played = game.move(move)
+          if (played === null) return // stale or invalid, never crash the UI
+
+          board.position(game.fen())
+          playMoveSound()
+          highlightMove(played.from, played.to)
+          updateStatus()
+        }
 
         // sounds for the end of the game
         var yesSound = new Audio('mixkit-robot-says-yes-283.wav')
@@ -241,6 +301,10 @@
         }
 
         function onMouseoverSquare (square, piece) {
+          // no hints while Khianat is thinking (or the game is over)
+          if (game.game_over()) return
+          if (game.turn() !== 'w') return
+
           // get list of possible moves for this square
           var moves = game.moves({
           square: square,
@@ -352,6 +416,7 @@
 
         function newGame () {
           window.clearTimeout(thinkTimer) // in case Khianat was about to move
+          searchId++ // invalidates any search still running in the worker
           game.reset()
           board.start()
           clearClickSelection()
@@ -426,7 +491,7 @@
         $('#newGameBtn').on('click', newGame)
 
         $('#difficulty').on('change', function () {
-          setDifficulty(parseInt(this.value, 10))
+          engineDifficulty = parseInt(this.value, 10)
         })
 
         updateStatus()

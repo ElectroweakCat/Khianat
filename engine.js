@@ -348,26 +348,6 @@ function getBestMove (game) {
     return bestMove;
 }
 
-// ---------------------------------------------------------------------------
-// Public entry point, called from index.html after the player's move
-// ---------------------------------------------------------------------------
-
-function makeMove () {
-    if (game.game_over()) return;
-    if (game.turn() !== 'b') return; // Khianat plays Black only
-
-    // 1. try the opening book, 2. otherwise search
-    var move = getBookMove(game);
-    if (move === null) {
-        move = getBestMove(game);
-    }
-    if (move === null) return; // should never happen, but never crash the UI
-
-    var played = game.move(move);
-    if (played === null) return;
-
-    board.position(game.fen());
-    playMoveSound();
-    highlightMove(played.from, played.to);
-    updateStatus();
-}
+// This file is pure engine logic with no DOM access, so it can be loaded
+// both in the page (as a fallback) and inside the Web Worker
+// (engine-worker.js) that normally runs the search in the background.
