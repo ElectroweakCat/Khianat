@@ -29,6 +29,7 @@ Estimated playing strength: roughly 1500–1700 Elo against human casual players
 ## Features
 
 - Play against the engine with five difficulty levels, drag or click-to-move, move sounds, last-move highlighting and a mobile-friendly responsive board
+- Statistics dashboard: personal results per difficulty (stored locally) and global results of all players (stored server-side)
 - Technical documentation page with hand-drawn SVG diagrams of the search
 - Visitor poll with live percentages
 - Development blog

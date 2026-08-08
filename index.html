@@ -25,6 +25,9 @@
 
       <!-- get the acutall chess engine, which returns the best move it can find-->
       <script type="text/javascript" src="engine.js"></script>
+
+      <!-- helpers for the personal and global game statistics -->
+      <script type="text/javascript" src="stats.js"></script>
   </head>
 
   <body>
@@ -38,6 +41,7 @@
       <nav class="site-nav">
         <a href="index.html" class="active">Home</a>
         <a href="#Play">Play</a>
+        <a href="stats.html">Stats</a>
         <a href="about.html">About</a>
         <a href="blog.html">Blog</a>
         <a href="impressum.html">Impressum</a>
@@ -51,6 +55,7 @@
       </section>
 
       <section class="card">
+        <p>Tell Khianat your level and it will pick a matching difficulty for you.</p>
         <form id="surveyForm">
           <fieldset>
             <legend>What level of chess player are you?</legend>
@@ -72,35 +77,28 @@
         <div id="surveyResult"></div>
 
         <script>
-          // Survey: send the vote to poll.php and show the percentages afterwards
-          var surveyLabels = {
-            one: 'Absolute beginner',
-            two: 'Ambitious student',
-            three: 'Club player',
-            four: 'Professional',
-            five: 'I have a title'
-          }
-
+          // Survey: send the vote to poll.php and set a matching difficulty.
+          // How everyone voted is shown on the Stats page.
           function showSurveyResults (counts, vote) {
-            var total = 0
-            for (var key in surveyLabels) {
-              total += counts[key] || 0
-            }
-
-            var html = 'Thanks for your answer! ' + total + ' answer' + (total === 1 ? '' : 's') + ' so far:<br><br>'
-            for (var key in surveyLabels) {
-              var count = counts[key] || 0
-              var percent = total > 0 ? Math.round((count / total) * 100) : 0
-              html += surveyLabels[key] + ': ' + percent + '%<br>'
-            }
+            var html = 'Thanks for your answer!'
 
             // suggest a matching difficulty for the game below
             var levelMap = { one: 1, two: 2, three: 3, four: 4, five: 5 }
             var suggested = levelMap[vote]
             if (suggested) {
-              document.getElementById('difficulty').value = String(suggested)
-              engineDifficulty = suggested
-              html += '<br>Khianat set its difficulty to ' + suggested + ' to match your level. You can change it any time below.'
+              var canApply = true
+              try {
+                canApply = isGameOver() || game.history().length === 0
+              } catch (e) {}
+
+              if (canApply) {
+                document.getElementById('difficulty').value = String(suggested)
+                engineDifficulty = suggested
+                try { refreshStatsDisplay() } catch (e) {} // bars follow the new level
+                html = 'Khianat set its difficulty to ' + suggested + ' to match your level. You can change it any time below.'
+              } else {
+                html = 'Recommended difficulty for your level: ' + suggested + '.'
+              }
             }
 
             document.getElementById('surveyResult').innerHTML = html
@@ -152,7 +150,19 @@
         </div>
         <div id="myBoard"></div>
         <div class="status-line">Status: <span id="status"></span></div>
-        <button id="newGameBtn" type="button">New game</button>
+        <button id="gameBtn" type="button">New game</button>
+
+        <div class="game-stats">
+          <div class="stats-block">
+            <div class="stats-title">Your results at this difficulty</div>
+            <div id="personalBar"></div>
+          </div>
+          <div class="stats-block">
+            <div class="stats-title">All players at this difficulty</div>
+            <div id="globalBar"></div>
+          </div>
+        </div>
+        <p class="stats-hint"><a href="stats.html">More statistics &rarr;</a></p>
       <noscript>Sorry, your browser does not support JavaScript!</noscript>
 
       <script>
@@ -165,6 +175,12 @@
         var $pgn = $('#pgn')
         var thinkTimer = null
         var engineDifficulty = 3
+        var gameResigned = false
+
+        // the game is over when chess.js says so or the player resigned
+        function isGameOver () {
+          return gameResigned || game.game_over()
+        }
 
         // ----- engine in a Web Worker -----
         // The search runs in a background thread so the page stays responsive.
@@ -192,7 +208,7 @@
 
         // Khianat's move: dispatch to the worker, or think right here
         function makeMove () {
-          if (game.game_over()) return
+          if (isGameOver()) return
           if (game.turn() !== 'b') return // Khianat plays Black only
 
           if (engineWorker) {
@@ -214,7 +230,7 @@
 
         function finishEngineMove (move) {
           if (move === null) return
-          if (game.game_over() || game.turn() !== 'b') return
+          if (isGameOver() || game.turn() !== 'b') return
 
           var played = game.move(move)
           if (played === null) return // stale or invalid, never crash the UI
@@ -223,6 +239,7 @@
           playMoveSound()
           highlightMove(played.from, played.to)
           updateStatus()
+          saveCurrentGame()
         }
 
         // sounds for the end of the game
@@ -254,7 +271,7 @@
 
         function onDragStart (source, piece, position, orientation) {
         // do not pick up pieces if the game is over
-        if (game.game_over()) return false
+        if (isGameOver()) return false
 
         // only pick up pieces for the side to move
         if ((game.turn() === 'w' && piece.search(/^b/) !== -1) ||
@@ -274,6 +291,7 @@
           thinkTimer = window.setTimeout(makeMove, 250)
 
           updateStatus()
+          saveCurrentGame()
 
           // show that the engine is calculating (the search may take a few seconds)
           if (!game.game_over()) {
@@ -302,7 +320,7 @@
 
         function onMouseoverSquare (square, piece) {
           // no hints while Khianat is thinking (or the game is over)
-          if (game.game_over()) return
+          if (isGameOver()) return
           if (game.turn() !== 'w') return
 
           // get list of possible moves for this square
@@ -358,7 +376,7 @@
         }
 
         function handleSquareTap (square) {
-          if (game.game_over()) return
+          if (isGameOver()) return
           if (game.turn() !== 'w') return
 
           // first tap: select one of your pieces
@@ -421,7 +439,121 @@
           board.start()
           clearClickSelection()
           $('#myBoard .square-55d63').removeClass('highlight-last')
+          resultRecorded = false
+          gameResigned = false
+          saveCurrentGame() // clears the stored game
           updateStatus()
+        }
+
+        // giving up counts as a loss, no escaping the statistics
+        function resignGame () {
+          if (isGameOver() || game.history().length === 0) return
+
+          window.clearTimeout(thinkTimer)
+          searchId++ // a search still running in the worker must not move anymore
+          gameResigned = true
+          clearClickSelection()
+
+          recordResultOnce('l')
+          saveCurrentGame() // clears the stored game
+          yesSound.play()
+          $status.html('Game over, White resigned.')
+          updateGameButton()
+        }
+
+        // one button: "Resign" during a game, "New game" once it is over
+        function updateGameButton () {
+          if (!isGameOver() && game.history().length > 0) {
+            $('#gameBtn').text('Resign')
+          } else {
+            $('#gameBtn').text('New game')
+          }
+        }
+
+        // ----- running game survives a page reload -----
+        // The current game is stored in the browser after every move and
+        // restored on load, so reloading the page is no way to escape a
+        // lost position (and no accident can destroy a good one).
+
+        var GAME_STORAGE_KEY = 'khianatCurrentGame'
+
+        function saveCurrentGame () {
+          try {
+            if (game.history().length === 0 || isGameOver()) {
+              window.localStorage.removeItem(GAME_STORAGE_KEY)
+            } else {
+              window.localStorage.setItem(GAME_STORAGE_KEY, JSON.stringify({
+                history: game.history(),
+                difficulty: engineDifficulty
+              }))
+            }
+          } catch (e) {
+            // no localStorage: reload protection simply not available
+          }
+        }
+
+        function restoreSavedGame () {
+          try {
+            var saved = JSON.parse(window.localStorage.getItem(GAME_STORAGE_KEY))
+            if (!saved || !saved.history || saved.history.length === 0) return
+
+            for (var i = 0; i < saved.history.length; i++) {
+              if (game.move(saved.history[i]) === null) {
+                game.reset() // corrupted data: just start fresh
+                return
+              }
+            }
+
+            if (saved.difficulty && DIFFICULTY_LEVELS[saved.difficulty]) {
+              engineDifficulty = saved.difficulty
+              $('#difficulty').val(String(saved.difficulty))
+            }
+
+            board.position(game.fen())
+
+            // reloaded while Khianat was thinking: let it move again
+            if (!game.game_over() && game.turn() === 'b') {
+              thinkTimer = window.setTimeout(makeMove, 500)
+            }
+          } catch (e) {
+            // unreadable data: just start fresh
+          }
+        }
+
+        // ----- game statistics -----
+
+        var resultRecorded = false
+        var globalStatsCache = null
+
+        // count each finished game exactly once, locally and on the server
+        function recordResultOnce (result) {
+          if (resultRecorded) return
+          resultRecorded = true
+
+          var moves = Math.max(1, Math.ceil(game.history().length / 2))
+          recordPersonalResult(engineDifficulty, result, moves)
+          refreshStatsDisplay()
+
+          postGlobalResult(engineDifficulty, result, moves, game.history()[0])
+            .then(function (data) {
+              globalStatsCache = data
+              refreshStatsDisplay()
+            })
+            .catch(function () {}) // no server (e.g. local file): personal stats still work
+        }
+
+        function refreshStatsDisplay () {
+          var lv = String(engineDifficulty)
+
+          var personal = loadPersonalStats()
+          renderResultBar(document.getElementById('personalBar'), personal.levels[lv])
+
+          var globalEl = document.getElementById('globalBar')
+          if (globalStatsCache && globalStatsCache.levels && globalStatsCache.levels[lv]) {
+            renderResultBar(globalEl, globalStatsCache.levels[lv])
+          } else {
+            globalEl.innerHTML = '<div class="result-legend">Not available</div>'
+          }
         }
 
         // update the board position after the piece snap
@@ -449,11 +581,15 @@
         } else {
         noSound.play()
         }
+
+        recordResultOnce(moveColor === 'White' ? 'l' : 'w')
         }
 
         // draw?
         else if (game.in_draw()) {
         status = 'Game over, drawn position'
+
+        recordResultOnce('d')
         }
 
         // game still on
@@ -469,6 +605,8 @@
         $status.html(status)
         $fen.html(game.fen())
         $pgn.html(game.pgn())
+
+        updateGameButton()
         }
 
         var config = {
@@ -488,13 +626,49 @@
         // keep the board size in sync with the screen (mobile friendly)
         $(window).on('resize', board.resize)
 
-        $('#newGameBtn').on('click', newGame)
-
-        $('#difficulty').on('change', function () {
-          engineDifficulty = parseInt(this.value, 10)
+        $('#gameBtn').on('click', function () {
+          if (!isGameOver() && game.history().length > 0) {
+            resignGame()
+          } else {
+            newGame()
+          }
         })
 
+        $('#difficulty').on('change', function () {
+          var newLevel = parseInt(this.value, 10)
+
+          // changing the difficulty mid-game would distort the statistics:
+          // it restarts the game and the running game counts as a loss
+          if (!isGameOver() && game.history().length > 0) {
+            var ok = window.confirm(
+              'Changing the difficulty restarts the game. ' +
+              'The current game will be counted as a loss. OK?'
+            )
+            if (!ok) {
+              this.value = String(engineDifficulty) // keep the old level
+              return
+            }
+            recordResultOnce('l') // counted at the level that was being played
+            engineDifficulty = newLevel
+            newGame()
+          } else {
+            engineDifficulty = newLevel
+          }
+
+          refreshStatsDisplay()
+          saveCurrentGame()
+        })
+
+        restoreSavedGame()
         updateStatus()
+        refreshStatsDisplay()
+
+        fetchGlobalStats()
+          .then(function (data) {
+            globalStatsCache = data
+            refreshStatsDisplay()
+          })
+          .catch(function () {}) // bars simply show "Not available"
         </script>
 
       </section>

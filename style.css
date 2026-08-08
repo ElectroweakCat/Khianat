@@ -253,7 +253,7 @@ input[type="submit"]:disabled {
   box-shadow: inset 0 0 0 3px #404040;
 }
 
-#newGameBtn {
+#gameBtn {
   margin-top: 0.9rem;
 }
 
@@ -287,6 +287,81 @@ select {
 .numeric-fc462 {
   top: 2px;
   left: 2px;
+}
+
+/* ---------- Game statistics ---------- */
+
+.game-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.1rem;
+  margin-top: 1.3rem;
+  text-align: left;
+}
+
+.stats-title {
+  font-size: 0.9em;
+  color: var(--cream-muted);
+  margin-bottom: 0.3rem;
+}
+
+.result-bar {
+  display: flex;
+  height: 1.05rem;
+  border-radius: 6px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.result-bar .seg-w { background: var(--accent); }
+.result-bar .seg-d { background: #a5713e; }
+.result-bar .seg-l { background: #3a0d0d; }
+
+.result-legend {
+  font-size: 0.85em;
+  color: var(--cream-muted);
+  margin-top: 0.3rem;
+}
+
+.stats-hint {
+  margin-bottom: 0;
+  font-size: 0.9em;
+}
+
+.stat-row {
+  text-align: left;
+  margin-bottom: 1.1rem;
+}
+
+.big-stats {
+  display: flex;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.big-stat .stat-number {
+  font-size: 2rem;
+  font-weight: 600;
+}
+
+.big-stat .stat-label {
+  color: var(--cream-muted);
+  font-size: 0.85em;
+}
+
+.fact-list {
+  text-align: left;
+}
+
+.fact-list p {
+  margin: 0.45rem 0;
+}
+
+@media (max-width: 600px) {
+  .game-stats {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ---------- Impressum / long text ---------- */

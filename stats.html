@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>Khianat &mdash; Stats</title>
+      <link rel="icon" type="image/x-icon" href="favicon.ico">
+      <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+      <!-- central stylesheet -->
+      <link rel="stylesheet" href="style.css">
+
+      <!-- helpers for the personal and global game statistics -->
+      <script type="text/javascript" src="stats.js"></script>
+  </head>
+
+  <body>
+
+      <header class="site-header">
+        <h1>Stats</h1>
+        <p class="tagline">How humanity is doing against Khianat</p>
+      </header>
+
+      <nav class="site-nav">
+        <a href="index.html">Home</a>
+        <a href="index.html#Play">Play</a>
+        <a href="stats.html" class="active">Stats</a>
+        <a href="about.html">About</a>
+        <a href="blog.html">Blog</a>
+        <a href="impressum.html">Impressum</a>
+      </nav>
+
+      <main>
+
+        <section class="card">
+          <h2>Khianat's overall record</h2>
+          <div class="big-stats">
+            <div class="big-stat">
+              <div class="stat-number" id="totalGames">&ndash;</div>
+              <div class="stat-label">games played</div>
+            </div>
+            <div class="big-stat">
+              <div class="stat-number" id="khianatWinRate">&ndash;</div>
+              <div class="stat-label">won by Khianat</div>
+            </div>
+            <div class="big-stat">
+              <div class="stat-number" id="timesBeaten">&ndash;</div>
+              <div class="stat-label">times Khianat was beaten</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Results by difficulty</h2>
+          <p class="stats-title">All players, from the player's point of view.</p>
+          <div id="globalLevels"></div>
+        </section>
+
+        <section class="card">
+          <h2>Fun facts</h2>
+          <div class="fact-list" id="funFacts"><p>&ndash;</p></div>
+        </section>
+
+        <section class="card">
+          <h2>How players rate themselves</h2>
+          <p class="stats-title">Answers to the survey on the home page.</p>
+          <div id="surveyStats"><p class="result-legend">&ndash;</p></div>
+        </section>
+
+        <section class="card">
+          <h2>Your games on this device</h2>
+          <div id="personalLevels"></div>
+          <p class="result-legend" id="personalFacts"></p>
+        </section>
+
+      </main>
+
+      <footer>
+        Copyright &copy; 2026 Benjamin Berger &middot; <a href="https://github.com/ElectroweakCat/Khianat">Source on GitHub</a>
+      </footer>
+
+      <script>
+        function levelRow (label, barId) {
+          return '<div class="stat-row">' +
+                   '<div class="stats-title">' + label + '</div>' +
+                   '<div id="' + barId + '"></div>' +
+                 '</div>'
+        }
+
+        // build one row per difficulty for the global and the personal section
+        var globalRows = ''
+        var personalRows = ''
+        for (var lv = 1; lv <= 5; lv++) {
+          var label = 'Level ' + lv + ' &middot; ' + DIFFICULTY_NAMES[lv]
+          globalRows += levelRow(label, 'global-' + lv)
+          personalRows += levelRow(label, 'personal-' + lv)
+        }
+        document.getElementById('globalLevels').innerHTML = globalRows
+        document.getElementById('personalLevels').innerHTML = personalRows
+
+        // ----- personal section (works without the server) -----
+
+        var personal = loadPersonalStats()
+        for (var p = 1; p <= 5; p++) {
+          renderResultBar(document.getElementById('personal-' + p), personal.levels[String(p)])
+        }
+        if (personal.shortestWin) {
+          document.getElementById('personalFacts').innerHTML =
+            'Your fastest win: ' + personal.shortestWin.moves + ' moves (level ' +
+            personal.shortestWin.level + ')'
+        }
+
+        // ----- global section -----
+
+        function showGlobalStats (data) {
+          var wins = 0
+          var draws = 0
+          var losses = 0
+          var mostPlayed = null
+          var mostPlayedGames = -1
+
+          for (var lv = 1; lv <= 5; lv++) {
+            var counts = data.levels[String(lv)]
+            renderResultBar(document.getElementById('global-' + lv), counts)
+
+            wins += counts.w
+            draws += counts.d
+            losses += counts.l
+            var games = counts.w + counts.d + counts.l
+            if (games > mostPlayedGames) {
+              mostPlayedGames = games
+              mostPlayed = lv
+            }
+          }
+
+          var total = wins + draws + losses
+          document.getElementById('totalGames').innerHTML = total
+          document.getElementById('khianatWinRate').innerHTML =
+            total > 0 ? Math.round((losses / total) * 100) + '%' : '&ndash;'
+          document.getElementById('timesBeaten').innerHTML = wins
+
+          // fun facts
+          var facts = ''
+          if (total > 0) {
+            facts += '<p><strong>Most played difficulty:</strong> level ' + mostPlayed +
+                     ' (' + DIFFICULTY_NAMES[mostPlayed] + ')</p>'
+            facts += '<p><strong>Average game length:</strong> ' +
+                     Math.round(data.totalMoves / data.games) + ' moves</p>'
+            if (data.shortestWin) {
+              facts += '<p><strong>Fastest win against Khianat:</strong> ' +
+                       data.shortestWin.moves + ' moves (level ' + data.shortestWin.level + ')</p>'
+            }
+            if (data.longestGame) {
+              facts += '<p><strong>Longest game so far:</strong> ' + data.longestGame + ' moves</p>'
+            }
+
+            // most popular first moves of the players
+            var firstMoves = []
+            for (var san in data.firstMoves) {
+              firstMoves.push([san, data.firstMoves[san]])
+            }
+            if (firstMoves.length > 0) {
+              firstMoves.sort(function (a, b) { return b[1] - a[1] })
+              var top = firstMoves.slice(0, 5).map(function (entry) {
+                return entry[0] + ' (' + entry[1] + ')'
+              })
+              facts += '<p><strong>Most popular first moves:</strong> ' + top.join(', ') + '</p>'
+            }
+          } else {
+            facts = '<p>No games recorded yet. Someone has to be the first!</p>'
+          }
+          document.getElementById('funFacts').innerHTML = facts
+        }
+
+        fetchGlobalStats()
+          .then(showGlobalStats)
+          .catch(function () {
+            document.getElementById('funFacts').innerHTML =
+              '<p>The global statistics are currently not available.</p>'
+            for (var lv = 1; lv <= 5; lv++) {
+              document.getElementById('global-' + lv).innerHTML =
+                '<div class="result-legend">Not available</div>'
+            }
+          })
+
+        // ----- self-assessment from the home page survey -----
+
+        function showSurveyStats (counts) {
+          var order = ['one', 'two', 'three', 'four', 'five']
+          var total = 0
+          var i
+
+          for (i = 0; i < order.length; i++) {
+            total += counts[order[i]] || 0
+          }
+
+          if (total === 0) {
+            document.getElementById('surveyStats').innerHTML =
+              '<p class="result-legend">No answers yet.</p>'
+            return
+          }
+
+          var html = ''
+          for (i = 0; i < order.length; i++) {
+            var count = counts[order[i]] || 0
+            var percent = (count / total) * 100
+            html += '<div class="stat-row">' +
+                      '<div class="stats-title">' + SURVEY_LABELS[order[i]] + '</div>' +
+                      '<div class="result-bar">' +
+                        '<span class="seg-w" style="width:' + percent.toFixed(1) + '%"></span>' +
+                      '</div>' +
+                      '<div class="result-legend">' + Math.round(percent) + '% (' +
+                        count + ' answer' + (count === 1 ? '' : 's') + ')</div>' +
+                    '</div>'
+          }
+          html += '<p class="result-legend">Self-assessment only. The result bars above show how it actually went ;)</p>'
+          document.getElementById('surveyStats').innerHTML = html
+        }
+
+        fetchPollStats()
+          .then(showSurveyStats)
+          .catch(function () {
+            document.getElementById('surveyStats').innerHTML =
+              '<p class="result-legend">Not available.</p>'
+          })
+      </script>
+
+  </body>
+
+  </html>
