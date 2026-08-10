@@ -4,7 +4,19 @@
   <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1">
-      <title>Khianat &mdash; Stats</title>
+      <title>Khianat Chess Statistics &ndash; Wins, Losses and Players Worldwide</title>
+      <meta name="description" content="Live statistics of the Khianat chess engine: results per difficulty level, win rates, games per day and where its opponents come from.">
+      <link rel="canonical" href="https://khianat.org/stats.html">
+
+      <!-- link previews (OpenGraph / Twitter) -->
+      <meta property="og:type" content="website">
+      <meta property="og:site_name" content="Khianat">
+      <meta property="og:url" content="https://khianat.org/stats.html">
+      <meta property="og:title" content="Khianat Chess Statistics">
+      <meta property="og:description" content="How humanity is doing against the Khianat chess engine: win rates, games per day and countries.">
+      <meta property="og:image" content="https://khianat.org/social-preview.png">
+      <meta name="twitter:card" content="summary_large_image">
+
       <link rel="icon" type="image/x-icon" href="favicon.ico">
       <link rel="icon" type="image/svg+xml" href="favicon.svg">
 
@@ -58,6 +70,25 @@
         </section>
 
         <section class="card">
+          <h2>Your games on this device</h2>
+          <p class="stats-title">Stored only in this browser. Clearing your browser data resets it.</p>
+          <div id="personalLevels"></div>
+          <p class="result-legend" id="personalFacts"></p>
+        </section>
+
+        <section class="card">
+          <h2>Where Khianat's opponents come from</h2>
+          <p class="stats-title">Rough guess based on the browser timezone, no IP addresses involved.</p>
+          <div id="countryStats"><p class="result-legend">&ndash;</p></div>
+        </section>
+
+        <section class="card">
+          <h2>Games per day</h2>
+          <p class="stats-title">Finished games in the last 30 days.</p>
+          <div id="dailyStats"><p class="result-legend">&ndash;</p></div>
+        </section>
+
+        <section class="card">
           <h2>Fun facts</h2>
           <div class="fact-list" id="funFacts"><p>&ndash;</p></div>
         </section>
@@ -66,12 +97,6 @@
           <h2>How players rate themselves</h2>
           <p class="stats-title">Answers to the survey on the home page.</p>
           <div id="surveyStats"><p class="result-legend">&ndash;</p></div>
-        </section>
-
-        <section class="card">
-          <h2>Your games on this device</h2>
-          <div id="personalLevels"></div>
-          <p class="result-legend" id="personalFacts"></p>
         </section>
 
       </main>
@@ -171,6 +196,80 @@
             facts = '<p>No games recorded yet. Someone has to be the first!</p>'
           }
           document.getElementById('funFacts').innerHTML = facts
+
+          showCountryStats(data)
+          showDailyStats(data)
+        }
+
+        // top 10 countries by games, with win rate against Khianat
+        function showCountryStats (data) {
+          var countries = []
+          var maxGames = 0
+          for (var code in (data.countries || {})) {
+            countries.push([code, data.countries[code]])
+            if (data.countries[code].games > maxGames) maxGames = data.countries[code].games
+          }
+
+          if (countries.length === 0) {
+            document.getElementById('countryStats').innerHTML =
+              '<p class="result-legend">No data yet.</p>'
+            return
+          }
+
+          countries.sort(function (a, b) { return b[1].games - a[1].games })
+
+          var html = ''
+          var top = countries.slice(0, 10)
+          for (var i = 0; i < top.length; i++) {
+            var code = top[i][0]
+            var entry = top[i][1]
+            var width = (entry.games / maxGames) * 100
+            var winRate = Math.round((entry.w / entry.games) * 100)
+            html += '<div class="stat-row">' +
+                      '<div class="stats-title">' + countryFlag(code) + ' ' + countryName(code) + '</div>' +
+                      '<div class="result-bar">' +
+                        '<span class="seg-w" style="width:' + width.toFixed(1) + '%"></span>' +
+                      '</div>' +
+                      '<div class="result-legend">' + entry.games + ' game' + (entry.games === 1 ? '' : 's') +
+                        ' &middot; ' + winRate + '% wins against Khianat</div>' +
+                    '</div>'
+          }
+          document.getElementById('countryStats').innerHTML = html
+        }
+
+        // simple column chart: finished games per day, last 30 days
+        function showDailyStats (data) {
+          var days = []
+          for (var day in (data.daily || {})) {
+            days.push([day, data.daily[day]])
+          }
+
+          if (days.length === 0) {
+            document.getElementById('dailyStats').innerHTML =
+              '<p class="result-legend">No data yet.</p>'
+            return
+          }
+
+          days.sort(function (a, b) { return a[0] < b[0] ? -1 : 1 })
+
+          var max = 0
+          var total = 0
+          for (var i = 0; i < days.length; i++) {
+            if (days[i][1] > max) max = days[i][1]
+            total += days[i][1]
+          }
+
+          var cols = ''
+          for (var j = 0; j < days.length; j++) {
+            var height = Math.max(4, (days[j][1] / max) * 100)
+            cols += '<div class="day-col" style="height:' + height.toFixed(0) + '%" title="' +
+                    days[j][0] + ': ' + days[j][1] + '"></div>'
+          }
+
+          document.getElementById('dailyStats').innerHTML =
+            '<div class="day-cols">' + cols + '</div>' +
+            '<div class="result-legend">' + days[0][0] + ' to ' + days[days.length - 1][0] +
+            ' &middot; ' + total + ' games</div>'
         }
 
         fetchGlobalStats()
@@ -182,6 +281,10 @@
               document.getElementById('global-' + lv).innerHTML =
                 '<div class="result-legend">Not available</div>'
             }
+            document.getElementById('countryStats').innerHTML =
+              '<p class="result-legend">Not available.</p>'
+            document.getElementById('dailyStats').innerHTML =
+              '<p class="result-legend">Not available.</p>'
           })
 
         // ----- self-assessment from the home page survey -----

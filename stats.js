@@ -32,6 +32,106 @@ function fetchPollStats () {
     });
 }
 
+// ---------- country guess (privacy friendly, no IP involved) ----------
+// The browser timezone gives a rough country guess, e.g. Europe/Berlin -> DE.
+// Only this two-letter code is ever sent to the server.
+
+var TIMEZONE_COUNTRIES = {
+    'Europe/Berlin': 'DE', 'Europe/Busingen': 'DE',
+    'Europe/Vienna': 'AT', 'Europe/Zurich': 'CH',
+    'Europe/Paris': 'FR', 'Europe/Monaco': 'MC', 'Europe/Luxembourg': 'LU',
+    'Europe/London': 'GB', 'Europe/Dublin': 'IE',
+    'Europe/Madrid': 'ES', 'Atlantic/Canary': 'ES', 'Europe/Lisbon': 'PT',
+    'Europe/Rome': 'IT', 'Europe/Malta': 'MT', 'Europe/Amsterdam': 'NL',
+    'Europe/Brussels': 'BE', 'Europe/Copenhagen': 'DK', 'Europe/Stockholm': 'SE',
+    'Europe/Oslo': 'NO', 'Europe/Helsinki': 'FI', 'Atlantic/Reykjavik': 'IS',
+    'Europe/Warsaw': 'PL', 'Europe/Prague': 'CZ', 'Europe/Bratislava': 'SK',
+    'Europe/Budapest': 'HU', 'Europe/Bucharest': 'RO', 'Europe/Sofia': 'BG',
+    'Europe/Athens': 'GR', 'Europe/Istanbul': 'TR', 'Asia/Nicosia': 'CY',
+    'Europe/Kiev': 'UA', 'Europe/Kyiv': 'UA', 'Europe/Moscow': 'RU',
+    'Europe/Minsk': 'BY', 'Europe/Riga': 'LV', 'Europe/Vilnius': 'LT',
+    'Europe/Tallinn': 'EE', 'Europe/Zagreb': 'HR', 'Europe/Belgrade': 'RS',
+    'Europe/Ljubljana': 'SI', 'Europe/Sarajevo': 'BA', 'Europe/Skopje': 'MK',
+    'Europe/Tirane': 'AL',
+
+    'America/New_York': 'US', 'America/Chicago': 'US', 'America/Denver': 'US',
+    'America/Los_Angeles': 'US', 'America/Phoenix': 'US', 'America/Anchorage': 'US',
+    'Pacific/Honolulu': 'US', 'America/Detroit': 'US',
+    'America/Toronto': 'CA', 'America/Vancouver': 'CA', 'America/Edmonton': 'CA',
+    'America/Winnipeg': 'CA', 'America/Halifax': 'CA', 'America/St_Johns': 'CA',
+    'America/Mexico_City': 'MX', 'America/Bogota': 'CO', 'America/Lima': 'PE',
+    'America/Santiago': 'CL', 'America/Argentina/Buenos_Aires': 'AR',
+    'America/Sao_Paulo': 'BR', 'America/Bahia': 'BR', 'America/Fortaleza': 'BR',
+    'America/Manaus': 'BR', 'America/Recife': 'BR',
+    'America/Caracas': 'VE', 'America/Montevideo': 'UY', 'America/Guayaquil': 'EC',
+    'America/La_Paz': 'BO', 'America/Asuncion': 'PY', 'America/Panama': 'PA',
+    'America/Costa_Rica': 'CR', 'America/Guatemala': 'GT', 'America/Havana': 'CU',
+    'America/Santo_Domingo': 'DO', 'America/Puerto_Rico': 'PR',
+
+    'Asia/Jakarta': 'ID', 'Asia/Makassar': 'ID', 'Asia/Jayapura': 'ID',
+    'Asia/Singapore': 'SG', 'Asia/Kuala_Lumpur': 'MY', 'Asia/Bangkok': 'TH',
+    'Asia/Ho_Chi_Minh': 'VN', 'Asia/Manila': 'PH', 'Asia/Hong_Kong': 'HK',
+    'Asia/Taipei': 'TW', 'Asia/Shanghai': 'CN', 'Asia/Tokyo': 'JP',
+    'Asia/Seoul': 'KR', 'Asia/Kolkata': 'IN', 'Asia/Calcutta': 'IN',
+    'Asia/Karachi': 'PK', 'Asia/Dhaka': 'BD', 'Asia/Colombo': 'LK',
+    'Asia/Kathmandu': 'NP', 'Asia/Dubai': 'AE', 'Asia/Riyadh': 'SA',
+    'Asia/Qatar': 'QA', 'Asia/Kuwait': 'KW', 'Asia/Baghdad': 'IQ',
+    'Asia/Tehran': 'IR', 'Asia/Jerusalem': 'IL', 'Asia/Amman': 'JO',
+    'Asia/Beirut': 'LB', 'Asia/Baku': 'AZ', 'Asia/Yerevan': 'AM',
+    'Asia/Tbilisi': 'GE', 'Asia/Almaty': 'KZ', 'Asia/Tashkent': 'UZ',
+
+    'Africa/Cairo': 'EG', 'Africa/Casablanca': 'MA', 'Africa/Algiers': 'DZ',
+    'Africa/Tunis': 'TN', 'Africa/Lagos': 'NG', 'Africa/Accra': 'GH',
+    'Africa/Nairobi': 'KE', 'Africa/Johannesburg': 'ZA', 'Africa/Addis_Ababa': 'ET',
+    'Africa/Dar_es_Salaam': 'TZ', 'Africa/Kampala': 'UG', 'Africa/Abidjan': 'CI',
+
+    'Australia/Sydney': 'AU', 'Australia/Melbourne': 'AU', 'Australia/Brisbane': 'AU',
+    'Australia/Perth': 'AU', 'Australia/Adelaide': 'AU', 'Australia/Hobart': 'AU',
+    'Pacific/Auckland': 'NZ', 'Pacific/Fiji': 'FJ'
+};
+
+// 'ZZ' is the official ISO code for "unknown region": every game is counted,
+// even when the browser reveals no usable timezone.
+function guessCountry () {
+    try {
+        var timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        if (timezone && TIMEZONE_COUNTRIES[timezone]) {
+            return TIMEZONE_COUNTRIES[timezone];
+        }
+    } catch (e) {
+        // Intl not available: fall through
+    }
+
+    // fallback: region from the browser language, e.g. "de-DE" -> DE
+    try {
+        var match = (navigator.language || '').match(/[-_]([A-Za-z]{2})\b/);
+        if (match) {
+            return match[1].toUpperCase();
+        }
+    } catch (e) {
+        // fall through
+    }
+
+    return 'ZZ';
+}
+
+// 'DE' -> flag emoji, unknown region -> globe
+function countryFlag (code) {
+    if (code === 'ZZ') return '🌍';
+    return String.fromCodePoint(0x1F1E6 + code.charCodeAt(0) - 65)
+         + String.fromCodePoint(0x1F1E6 + code.charCodeAt(1) - 65);
+}
+
+// 'DE' -> 'Germany' (falls back to the code itself)
+function countryName (code) {
+    if (code === 'ZZ') return 'Unknown';
+    try {
+        return new Intl.DisplayNames(['en'], { type: 'region' }).of(code) || code;
+    } catch (e) {
+        return code;
+    }
+}
+
 // ---------- personal statistics (localStorage) ----------
 
 function emptyPersonalStats () {
@@ -107,7 +207,8 @@ function postGlobalResult (level, result, moves, firstMove) {
             level: level,
             result: result,
             moves: moves,
-            firstMove: firstMove || ''
+            firstMove: firstMove || '',
+            country: guessCountry()
         })
     }).then(function (response) {
         if (!response.ok) throw new Error('stats request failed');

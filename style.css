@@ -358,6 +358,20 @@ select {
   margin: 0.45rem 0;
 }
 
+/* games-per-day column chart */
+.day-cols {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 80px;
+}
+
+.day-cols .day-col {
+  flex: 1;
+  background: var(--accent);
+  border-radius: 2px 2px 0 0;
+}
+
 @media (max-width: 600px) {
   .game-stats {
     grid-template-columns: 1fr;

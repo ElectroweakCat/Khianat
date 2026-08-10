@@ -23,7 +23,9 @@ $data = array(
     'totalMoves' => 0,
     'shortestWin' => null,   // { moves, level }
     'longestGame' => null,   // moves
-    'firstMoves' => array()  // SAN => count
+    'firstMoves' => array(), // SAN => count
+    'countries' => array(),  // ISO code => { games, w } (guessed from browser timezone)
+    'daily' => array()       // YYYY-MM-DD => games (last 30 days)
 );
 foreach ($levels as $lv) {
     $data['levels'][$lv] = array('w' => 0, 'd' => 0, 'l' => 0);
@@ -54,6 +56,12 @@ if (file_exists($file)) {
         if (isset($stored['firstMoves']) && is_array($stored['firstMoves'])) {
             $data['firstMoves'] = $stored['firstMoves'];
         }
+        if (isset($stored['countries']) && is_array($stored['countries'])) {
+            $data['countries'] = $stored['countries'];
+        }
+        if (isset($stored['daily']) && is_array($stored['daily'])) {
+            $data['daily'] = $stored['daily'];
+        }
     }
 }
 
@@ -81,6 +89,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if ($data['longestGame'] === null || $moves > $data['longestGame']) {
         $data['longestGame'] = $moves;
+    }
+
+    // Country: an anonymous two-letter guess derived from the browser
+    // timezone or language. Anything invalid counts as ZZ (unknown region),
+    // so the country totals always add up to the number of games.
+    $country = isset($body['country']) ? $body['country'] : '';
+    if (!is_string($country) || !preg_match('/^[A-Z]{2}$/', $country)) {
+        $country = 'ZZ';
+    }
+    if (!isset($data['countries'][$country])) {
+        $data['countries'][$country] = array('games' => 0, 'w' => 0);
+    }
+    $data['countries'][$country]['games']++;
+    if ($result === 'w') {
+        $data['countries'][$country]['w']++;
+    }
+
+    // Games per day, kept for the last 30 days only
+    $today = date('Y-m-d');
+    if (!isset($data['daily'][$today])) {
+        $data['daily'][$today] = 0;
+    }
+    $data['daily'][$today]++;
+    if (count($data['daily']) > 30) {
+        krsort($data['daily']);
+        $data['daily'] = array_slice($data['daily'], 0, 30, true);
     }
 
     // First move of the player: only accept plausible SAN strings
