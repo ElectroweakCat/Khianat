@@ -3,6 +3,35 @@
    Modernized red/cream design, responsive & mobile friendly
    ========================================================= */
 
+/* Self-hosted EB Garamond (SIL Open Font License), so the typography looks
+   the same everywhere. Garamond is not installed on Android and most Linux
+   systems, which used to fall back to a completely different serif.
+   Nothing is loaded from Google, the files live in fonts/ on this server. */
+
+@font-face {
+  font-family: "EB Garamond";
+  src: url("fonts/eb-garamond-regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "EB Garamond";
+  src: url("fonts/eb-garamond-italic.woff2") format("woff2");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "EB Garamond";
+  src: url("fonts/eb-garamond-semibold.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --bg-1: #a83232;          /* classic Khianat red */
   --bg-2: #6f1d1d;          /* darker red for gradient */
@@ -28,7 +57,7 @@ body {
   min-height: 100vh;
   background: linear-gradient(160deg, var(--bg-1) 0%, var(--bg-2) 100%) fixed;
   color: var(--cream);
-  font-family: "EB Garamond", Garamond, Georgia, "Times New Roman", serif;
+  font-family: "EB Garamond", Garamond, "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
   font-size: clamp(1.05rem, 1rem + 0.4vw, 1.25rem);
   line-height: 1.6;
   text-align: center;
@@ -258,7 +287,17 @@ input[type="submit"]:disabled {
 }
 
 .difficulty-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
   margin-bottom: 1rem;
+}
+
+#soundBtn {
+  padding: 0.35rem 0.9rem;
+  font-size: 0.9em;
 }
 
 select {

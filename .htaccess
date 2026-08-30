@@ -1,4 +1,11 @@
-# Khianat: compression and browser caching for better load times
+# Khianat: compression, caching and a bit of housekeeping
+
+# the raw counter files are only meant for the PHP scripts
+<IfModule mod_authz_core.c>
+  <FilesMatch "^(poll-data|poll-voters|stats-data)\.json$">
+    Require all denied
+  </FilesMatch>
+</IfModule>
 
 # gzip compression for text-based files
 <IfModule mod_deflate.c>

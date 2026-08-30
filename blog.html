@@ -42,68 +42,48 @@
 
       <main>
         <article class="card">
-          <h2>#16 entry <span class="date">(09.08.26)</span></h2>
-          Numbers! Every finished game now counts: two bars under the board show your and everyone's results for the current difficulty, and the new Stats page collects Khianat's overall record, fun facts, and a top 10 of the countries its opponents come from (guessed from the browser timezone, no IP addresses involved). To keep the numbers honest, a running game can only be resigned (counts as a loss) and a reload simply restores the position. No escaping the statistics!
+          <h2>#12 entry <span class="date">(09.08.26)</span></h2>
+          Small round of polish. There is a sound toggle now, the poll got a spam guard, and the site brings its own font. Khianat also stopped repeating itself. Bigger opening book, and it now picks freely between equally good moves. Same strength, harder to predict.
         </article>
 
         <article class="card">
-          <h2>#15 entry <span class="date">(08.08.26)</span></h2>
-          Khianat now thinks in the background! The search moved into a Web Worker, so the page no longer freezes while the engine calculates... on slow phones it used to look crashed. If the browser does not allow a worker, the engine simply thinks in the foreground like before. Invisible change, much smoother feel.
+          <h2>#11 entry <span class="date">(05.08.26)</span></h2>
+          Khianat now thinks in a background thread, so the page stays smooth. And every finished game counts: bars under the board, plus a whole new Stats page with win rates and a top 10 of countries. Running games can only be resigned. No escaping the stats!
         </article>
 
         <article class="card">
-          <h2>#14 entry <span class="date">(05.08.26)</span></h2>
-          Khianat learned to take it easy! Five difficulty levels now, from a beginner friendly depth 1 up to full strength with 5 seconds of thinking (my guess: 1500 to 1700 Elo at the top). The survey on the home page even suggests a matching level after you answer, so it finally has a job. And you can now move pieces by clicking instead of dragging... much nicer on the phone.
+          <h2>#10 entry <span class="date">(01.08.26)</span></h2>
+          Khianat learned to take it easy. Five difficulty levels now, from harmless to roughly 1700 Elo. The survey on the home page picks a matching level for you. And you can move pieces by clicking now. Much nicer on the phone.
         </article>
 
         <article class="card">
-          <h2>#13 entry <span class="date">(01.08.26)</span></h2>
-          Khianat has a face now! New logo: a little pawn casting the shadow of a queen. Looks harmless, is not... basically the whole idea of this engine. The About page now tells the story behind the name (it is Indonesian and means betrayal), plus a new favicon and a preview image for the repo.
-        </article>
-
-        <article class="card">
-          <h2>#12 entry <span class="date">(18.07.26)</span></h2>
-          Housekeeping: made the Impressum and privacy policy leaner and more privacy friendly. A small hobby site does not need to publish more personal data than the law asks for. Back to chess soon!
-        </article>
-
-        <article class="card">
-          <h2>#11 entry <span class="date">(12.06.26)</span></h2>
-          Quality of life round! There is finally a New game button, and the last move gets highlighted on the board so you can see what Khianat just played. Also cleaned up the GitHub side: fresh README, updated license, and a link to the source code in the footer.
-        </article>
-
-        <article class="card">
-          <h2>#10 entry <span class="date">(14.03.26)</span></h2>
-          The About page grew up! It is now a proper little tech documentation: how the engine works from move generation over evaluation to the alpha-beta search, with diagrams of the search tree, the pruning, the knight table as a heatmap and an Elo history chart. All hand-drawn in SVG and CSS, no chart library needed. Probably the longest page on the site now...
-        </article>
-
-        <article class="card">
-          <h2>#9 entry <span class="date">(11.01.26)</span></h2>
-          Small one: every move now makes a proper click sound, like a piece being set down on a real board. Had the sample lying around forever. Feels so much better!
+          <h2>#9 entry <span class="date">(12.06.26)</span></h2>
+          The About page is now a small tech documentation. It explains how the engine works, with hand-drawn diagrams: search tree, pruning, even a heatmap. Also new: a New game button, the last move gets highlighted, and the footer links to the code on GitHub.
         </article>
 
         <article class="card">
           <h2>#8 entry <span class="date">(26.05.25)</span></h2>
-          Emergency fix! Right after leaving the opening book, pieces suddenly jumped around like crazy and at some point I was playing Black?! Turns out: when the thinking time ran out, the search aborted with an exception and skipped taking back its trial moves, so half a calculated line just stayed on the board. Now the abort runs through a simple flag and every undo is guaranteed to happen. Stable again, phew.
+          Emergency fix! After the opening book, pieces suddenly jumped around like crazy. At some point I was playing Black?! The cause: on timeout the search never took its trial moves back. Half a calculated line just stayed on the board. Fixed. Phew.
         </article>
 
         <article class="card">
           <h2>#7 entry <span class="date">(03.05.25)</span></h2>
-          The big one: Khianat is a real engine now! The old Minimax plan is finally implemented: alpha-beta pruning, about 3 seconds of thinking per move, quiescence search, and the piece square tables actually in use. Mate, stalemate and draws are scored correctly, and the opening book stayed of course. My guess: somewhere around 1500 Elo. I honestly struggle against it myself now, especially when I get impatient... Next up maybe a transposition table and a smarter evaluation.
+          The big one: Khianat is a real engine now! Until today it only looked a single move ahead and grabbed whatever it could. Now it searches several moves deep. Minimax with alpha-beta pruning, so hopeless branches get skipped early. About 3 seconds of thinking per move. A quiescence search calculates every capture sequence to the end, so it no longer falls for cheap traps. The piece square tables are finally in use, and the king even gets its own table for the endgame. Mate, stalemate and draws are scored correctly. The opening book stayed, of course. My guess: around 1500 Elo. I struggle against it myself, especially when I get impatient...
         </article>
 
         <article class="card">
           <h2>#6 entry <span class="date">(27.01.24)</span></h2>
-          Fresh paint! One central stylesheet, card design, and the site finally works on the phone: the board resizes with the screen. Also slimmed down the endless copy-paste Impressum and said goodbye to the bouncing balls. RIP, little guys.
+          Fresh paint! One central stylesheet and a card design. The site finally works on the phone. Also trimmed the endless copy-paste Impressum. And the bouncing balls are gone. RIP, little guys.
         </article>
 
         <article class="card">
           <h2>#5 entry <span class="date">(19.04.23)</span></h2>
-          Khianat can talk now! It says "Yes" when it checkmates you and a grumpy "No" when you win. And the level survey finally counts for real: a small PHP script stores the votes and shows the percentages after you answer. Be honest about your level ;)
+          Khianat can talk now! It says "Yes" when it checkmates you. If you win, you get a grumpy "No". The level survey counts for real too, thanks to a tiny PHP script. Be honest about your level ;)
         </article>
 
         <article class="card">
           <h2>#4 entry <span class="date">(08.10.22)</span></h2>
-          Big bugfix round. The site was loading chess.js from a folder that doesn't even exist, so the board ignored every single move... embarrassing. Fixed that, repaired the dead navigation links, the duplicated radio buttons and a bunch of invalid HTML. Khianat is playable again!
+          Big bugfix round. The site was loading chess.js from a folder that does not even exist. The board ignored every single move... embarrassing. Also fixed dead links, duplicate radio buttons and some broken HTML. Khianat is playable again!
         </article>
 
         <article class="card">

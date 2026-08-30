@@ -27,14 +27,22 @@
 
 // Difficulty levels: how long and how deep Khianat may think per move.
 // Level 5 is the full engine, lower levels cap the depth and thinking time.
+// varietyMargin says how much worse than the best move an opening move may
+// be and still be considered (in centipawns, 100 = one pawn). The weaker the
+// level, the more Khianat is allowed to improvise.
 var DIFFICULTY_LEVELS = {
-    1: { timeMs: 500,  maxDepth: 1 },
-    2: { timeMs: 1000, maxDepth: 2 },
-    3: { timeMs: 2000, maxDepth: 3 },
-    4: { timeMs: 3000, maxDepth: 5 },
-    5: { timeMs: 5000, maxDepth: 40 }
+    1: { timeMs: 500,  maxDepth: 1,  varietyMargin: 120 },
+    2: { timeMs: 1000, maxDepth: 2,  varietyMargin: 90 },
+    3: { timeMs: 2000, maxDepth: 3,  varietyMargin: 60 },
+    4: { timeMs: 3000, maxDepth: 5,  varietyMargin: 40 },
+    5: { timeMs: 5000, maxDepth: 40, varietyMargin: 25 }
 };
 var currentDifficulty = 3;
+
+// How long the opening phase lasts (in half-moves). Only inside this phase
+// does Khianat vary between equally good moves; afterwards it always plays
+// the move it considers best, so middlegame and endgame keep full strength.
+var OPENING_VARIETY_PLIES = 16;
 
 function setDifficulty (level) {
     if (DIFFICULTY_LEVELS[level]) {
@@ -60,30 +68,88 @@ var searchAborted = false;
 
 var OPENING_BOOK = {
     // --- first black move ---
+    // Deliberately broad: the more replies per position, the harder it is to
+    // prepare a line against Khianat. Odd choices keep a small weight.
 
     // 1. e4
     'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1':
-        [{ move: 'e5', weight: 0.5 }, { move: 'c5', weight: 0.5 }],
+        [{ move: 'c5', weight: 0.25 },   // Sicilian
+         { move: 'e5', weight: 0.25 },   // open games
+         { move: 'e6', weight: 0.15 },   // French
+         { move: 'c6', weight: 0.15 },   // Caro-Kann
+         { move: 'd5', weight: 0.05 },   // Scandinavian
+         { move: 'Nf6', weight: 0.05 },  // Alekhine
+         { move: 'g6', weight: 0.05 },   // Modern
+         { move: 'd6', weight: 0.05 }],  // Pirc
 
     // 1. d4
     'rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq d3 0 1':
-        [{ move: 'g6', weight: 0.7 }, { move: 'e5', weight: 0.3 }],
+        [{ move: 'Nf6', weight: 0.3 },
+         { move: 'd5', weight: 0.25 },
+         { move: 'e6', weight: 0.15 },
+         { move: 'g6', weight: 0.15 },
+         { move: 'f5', weight: 0.1 },    // Dutch
+         { move: 'e5', weight: 0.05 }],  // Englund gambit, just for fun
 
     // 1. Nf3
     'rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R b KQkq - 1 1':
-        [{ move: 'b5', weight: 0.5 }, { move: 'c5', weight: 0.5 }],
+        [{ move: 'd5', weight: 0.3 },
+         { move: 'Nf6', weight: 0.3 },
+         { move: 'c5', weight: 0.2 },
+         { move: 'g6', weight: 0.15 },
+         { move: 'b5', weight: 0.05 }],  // Polish defence, cheeky
 
     // 1. c4
     'rnbqkbnr/pppppppp/8/8/2P5/8/PP1PPPPP/RNBQKBNR b KQkq c3 0 1':
-        [{ move: 'b6', weight: 0.5 }, { move: 'e5', weight: 0.5 }],
+        [{ move: 'e5', weight: 0.3 },
+         { move: 'Nf6', weight: 0.3 },
+         { move: 'c5', weight: 0.15 },
+         { move: 'e6', weight: 0.15 },
+         { move: 'g6', weight: 0.1 }],
 
     // 1. Nc3
     'rnbqkbnr/pppppppp/8/8/8/2N5/PPPPPPPP/R1BQKBNR b KQkq - 1 1':
-        [{ move: 'd5', weight: 0.5 }, { move: 'c5', weight: 0.5 }],
+        [{ move: 'd5', weight: 0.4 },
+         { move: 'c5', weight: 0.25 },
+         { move: 'e5', weight: 0.2 },
+         { move: 'Nf6', weight: 0.15 }],
 
     // 1. g3
     'rnbqkbnr/pppppppp/8/8/8/6P1/PPPPPP1P/RNBQKBNR b KQkq - 0 1':
-        [{ move: 'e5', weight: 0.5 }, { move: 'c5', weight: 0.5 }],
+        [{ move: 'd5', weight: 0.3 },
+         { move: 'e5', weight: 0.3 },
+         { move: 'Nf6', weight: 0.2 },
+         { move: 'c5', weight: 0.2 }],
+
+    // 1. b3
+    'rnbqkbnr/pppppppp/8/8/8/1P6/P1PPPPPP/RNBQKBNR b KQkq - 0 1':
+        [{ move: 'e5', weight: 0.4 },
+         { move: 'd5', weight: 0.35 },
+         { move: 'Nf6', weight: 0.25 }],
+
+    // 1. f4 (Bird)
+    'rnbqkbnr/pppppppp/8/8/5P2/8/PPPPP1PP/RNBQKBNR b KQkq f3 0 1':
+        [{ move: 'd5', weight: 0.5 },
+         { move: 'Nf6', weight: 0.3 },
+         { move: 'e5', weight: 0.2 }],   // From gambit
+
+    // 1. e3
+    'rnbqkbnr/pppppppp/8/8/8/4P3/PPPP1PPP/RNBQKBNR b KQkq - 0 1':
+        [{ move: 'd5', weight: 0.5 },
+         { move: 'e5', weight: 0.3 },
+         { move: 'Nf6', weight: 0.2 }],
+
+    // 1. d3
+    'rnbqkbnr/pppppppp/8/8/8/3P4/PPP1PPPP/RNBQKBNR b KQkq - 0 1':
+        [{ move: 'd5', weight: 0.5 },
+         { move: 'e5', weight: 0.3 },
+         { move: 'Nf6', weight: 0.2 }],
+
+    // 1. b4 (Sokolsky)
+    'rnbqkbnr/pppppppp/8/8/1P6/8/P1PPPPPP/RNBQKBNR b KQkq b3 0 1':
+        [{ move: 'e5', weight: 0.5 },
+         { move: 'd5', weight: 0.3 },
+         { move: 'Nf6', weight: 0.2 }],
 
     // --- second black move ---
 
@@ -93,15 +159,41 @@ var OPENING_BOOK = {
 
     // Sicilian defense: 1. e4 c5 2. Nf3
     'rnbqkbnr/pp1ppppp/8/2p5/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2':
-        [{ move: 'e6', weight: 0.5 }, { move: 'a6', weight: 0.5 }],
+        [{ move: 'd6', weight: 0.3 },
+         { move: 'Nc6', weight: 0.3 },
+         { move: 'e6', weight: 0.25 },
+         { move: 'a6', weight: 0.15 }],
 
     // Kings pawn opening, kings knight variation: 1. e4 e5 2. Nf3
     'rnbqkbnr/pppp1ppp/8/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq - 1 2':
-        [{ move: 'Nc6', weight: 0.5 }, { move: 'f5', weight: 0.5 }],
+        [{ move: 'Nc6', weight: 0.5 },
+         { move: 'Nf6', weight: 0.3 },   // Petrov
+         { move: 'd6', weight: 0.15 },   // Philidor
+         { move: 'f5', weight: 0.05 }],  // Latvian gambit, very Khianat
 
     // Vienna game: 1. e4 e5 2. Nc3
     'rnbqkbnr/pppp1ppp/8/4p3/4P3/2N5/PPPP1PPP/R1BQKBNR b KQkq - 1 2':
         [{ move: 'Nf6', weight: 0.5 }, { move: 'Nc6', weight: 0.5 }],
+
+    // Caro-Kann: 1. e4 c6 2. d4
+    'rnbqkbnr/pp1ppppp/2p5/8/3PP3/8/PPP2PPP/RNBQKBNR b KQkq d3 0 2':
+        [{ move: 'd5', weight: 0.8 }, { move: 'g6', weight: 0.2 }],
+
+    // French defence: 1. e4 e6 2. d4
+    'rnbqkbnr/pppp1ppp/4p3/8/3PP3/8/PPP2PPP/RNBQKBNR b KQkq d3 0 2':
+        [{ move: 'd5', weight: 0.8 }, { move: 'c5', weight: 0.2 }],
+
+    // Indian defences: 1. d4 Nf6 2. c4
+    'rnbqkb1r/pppppppp/5n2/8/2PP4/8/PP2PPPP/RNBQKBNR b KQkq c3 0 2':
+        [{ move: 'e6', weight: 0.4 },
+         { move: 'g6', weight: 0.4 },
+         { move: 'c5', weight: 0.2 }],   // Benoni
+
+    // Queens gambit: 1. d4 d5 2. c4
+    'rnbqkbnr/ppp1pppp/8/3p4/2PP4/8/PP2PPPP/RNBQKBNR b KQkq c3 0 2':
+        [{ move: 'e6', weight: 0.35 },   // declined
+         { move: 'c6', weight: 0.35 },   // Slav
+         { move: 'dxc4', weight: 0.3 }], // accepted
 
     // Modern defense with d4, e4: 1. d4 g6 2. e4
     'rnbqkbnr/pppppp1p/6p1/8/3PP3/8/PPP2PPP/RNBQKBNR b KQkq e3 0 2':
@@ -268,16 +360,22 @@ function negamax (game, depth, alpha, beta, colorSign, ply) {
 }
 
 /*
- * Root search for one fixed depth. Returns { move, score }, or null when
- * the time ran out midway (an unfinished depth must not be trusted).
+ * Root search for one fixed depth. Returns { move, score, scored }, or null
+ * when the time ran out midway (an unfinished depth must not be trusted).
  * rootMoves is reordered between iterations so the best move so far
  * is examined first (principal variation ordering).
+ *
+ * With exactScores the root window is never narrowed. That costs some speed,
+ * but it is what makes the scores of all moves comparable: with the usual
+ * alpha narrowing, everything except the best move only gets an upper bound,
+ * which is useless for picking between near-equal moves.
  */
-function searchRoot (game, depth, colorSign, rootMoves) {
+function searchRoot (game, depth, colorSign, rootMoves, exactScores) {
     var alpha = -Infinity;
     var beta = Infinity;
     var bestMove = rootMoves[0];
     var bestScore = -Infinity;
+    var scored = [];
 
     for (var i = 0; i < rootMoves.length; i++) {
         game.move(rootMoves[i]);
@@ -285,14 +383,49 @@ function searchRoot (game, depth, colorSign, rootMoves) {
         game.undo(); // must always run, even when the search is being aborted
 
         if (searchAborted) return null;
+        if (exactScores) {
+            scored.push({ move: rootMoves[i], score: score });
+        }
         if (score > bestScore) {
             bestScore = score;
             bestMove = rootMoves[i];
         }
-        if (bestScore > alpha) alpha = bestScore;
+        if (!exactScores && bestScore > alpha) alpha = bestScore;
     }
 
-    return { move: bestMove, score: bestScore };
+    return { move: bestMove, score: bestScore, scored: scored };
+}
+
+/*
+ * Picks one of the moves that are at most 'margin' worse than the best one,
+ * the closer to the best, the more likely. This is what keeps Khianat from
+ * repeating the same game over and over: among moves it considers equally
+ * good it simply makes a choice, like a human would. Anything clearly worse
+ * (a hanging piece is hundreds of centipawns) never enters the selection.
+ */
+function pickVariedMove (scored, bestScore, margin) {
+    var candidates = [];
+    var totalWeight = 0;
+    var i;
+
+    for (i = 0; i < scored.length; i++) {
+        var loss = bestScore - scored[i].score;
+        if (loss <= margin) {
+            // full weight for the best move, decreasing towards the margin
+            var weight = margin - loss + 1;
+            candidates.push({ move: scored[i].move, weight: weight });
+            totalWeight += weight;
+        }
+    }
+
+    if (candidates.length === 0) return null;
+
+    var pick = Math.random() * totalWeight;
+    for (i = 0; i < candidates.length; i++) {
+        pick -= candidates[i].weight;
+        if (pick <= 0) return candidates[i].move;
+    }
+    return candidates[candidates.length - 1].move;
 }
 
 /*
@@ -315,15 +448,22 @@ function getBestMove (game) {
     if (rootMoves.length === 0) return null;
     if (rootMoves.length === 1) return rootMoves[0]; // forced move: no need to think
 
+    // in the opening, score every root move exactly so equally good moves
+    // can be told apart and chosen between
+    var inOpening = realHistoryLength < OPENING_VARIETY_PLIES;
+
     var bestMove = rootMoves[0];
+    var lastResult = null;
+    var forcedMate = false;
 
     for (var depth = 1; depth <= level.maxDepth; depth++) {
-        var result = searchRoot(game, depth, colorSign, rootMoves);
+        var result = searchRoot(game, depth, colorSign, rootMoves, inOpening);
 
         // time ran out during this depth: keep the move of the last finished depth
         if (result === null) break;
 
         bestMove = result.move;
+        lastResult = result;
 
         // put the best move first for the next, deeper iteration
         var idx = rootMoves.indexOf(bestMove);
@@ -334,8 +474,16 @@ function getBestMove (game) {
 
         // stop early if a forced mate was found
         if (Math.abs(result.score) >= MATE_VALUE - MAX_SEARCH_DEPTH) {
+            forcedMate = true;
             break;
         }
+    }
+
+    // opening: pick among the moves that are just as good (but never give up
+    // a forced mate for the sake of variety)
+    if (inOpening && !forcedMate && lastResult && lastResult.scored.length > 0) {
+        var varied = pickVariedMove(lastResult.scored, lastResult.score, level.varietyMargin);
+        if (varied) bestMove = varied;
     }
 
     // safety net: take back anything the search may have left on the board.

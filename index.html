@@ -189,6 +189,7 @@
             <option value="4">4 &middot; Strong</option>
             <option value="5">5 &middot; Maximum</option>
           </select>
+          <button id="soundBtn" type="button" aria-pressed="true">Sound: on</button>
         </div>
         <div id="myBoard"></div>
         <div class="status-line">Status: <span id="status"></span></div>
@@ -291,9 +292,34 @@
         // wooden click for every move on the board
         var moveSound = new Audio('351518__mh2o__chess-move-on-alabaster.wav')
 
+        // sound can be muted, the choice is remembered in this browser
+        var SOUND_STORAGE_KEY = 'khianatSound'
+        var soundOn = true
+        try {
+          soundOn = window.localStorage.getItem(SOUND_STORAGE_KEY) !== 'off'
+        } catch (e) {}
+
+        function playSound (sound) {
+          if (!soundOn) return
+          sound.currentTime = 0
+          sound.play()
+        }
+
         function playMoveSound () {
-          moveSound.currentTime = 0
-          moveSound.play()
+          playSound(moveSound)
+        }
+
+        function updateSoundButton () {
+          $('#soundBtn').text('Sound: ' + (soundOn ? 'on' : 'off'))
+                        .attr('aria-pressed', soundOn ? 'true' : 'false')
+        }
+
+        function toggleSound () {
+          soundOn = !soundOn
+          try {
+            window.localStorage.setItem(SOUND_STORAGE_KEY, soundOn ? 'on' : 'off')
+          } catch (e) {}
+          updateSoundButton()
         }
 
         function removeGreySquares () {
@@ -498,7 +524,7 @@
 
           recordResultOnce('l')
           saveCurrentGame() // clears the stored game
-          yesSound.play()
+          playSound(yesSound)
           $status.html('Game over, White resigned.')
           updateGameButton()
         }
@@ -619,9 +645,9 @@
         // play sound: "Yes" if the computer checkmated the player (White),
         // "No" if the player checkmated the computer (Black)
         if (moveColor === 'White') {
-        yesSound.play()
+        playSound(yesSound)
         } else {
-        noSound.play()
+        playSound(noSound)
         }
 
         recordResultOnce(moveColor === 'White' ? 'l' : 'w')
@@ -667,6 +693,9 @@
 
         // keep the board size in sync with the screen (mobile friendly)
         $(window).on('resize', board.resize)
+
+        $('#soundBtn').on('click', toggleSound)
+        updateSoundButton()
 
         $('#gameBtn').on('click', function () {
           if (!isGameOver() && game.history().length > 0) {
