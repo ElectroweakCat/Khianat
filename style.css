@@ -235,6 +235,28 @@ input[type="submit"]:disabled {
   font-weight: 600;
 }
 
+/* captured pieces and material balance around the board */
+.captured {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1px;
+  min-height: 22px;
+  width: min(100%, 520px);
+  margin: 0 auto;
+  color: var(--cream-muted);
+  font-size: 0.9em;
+}
+
+.captured img {
+  width: 18px;
+  height: 18px;
+}
+
+.captured .material-diff {
+  margin-left: 0.35rem;
+}
+
 /* chessboard.js required classes */
 .clearfix-7da63 {
   clear: both;
