@@ -275,6 +275,58 @@ function checkTime () {
 }
 
 // ---------------------------------------------------------------------------
+// Draw detection
+//
+// chess.js can detect repetitions, but the way it does it is to take the
+// whole game apart move by move, build a FEN for every position and play
+// everything back again. That is fine once per move, but the search called
+// it in every single node, which made it by far the most expensive thing
+// the engine did. So repetitions are tracked here instead: a small list of
+// position keys, made of the real game plus the current search path.
+// ---------------------------------------------------------------------------
+
+var repetitionKeys = [];
+
+// a FEN without the move counters identifies the position itself
+function positionKey (game) {
+    return game.fen().split(' ').slice(0, 4).join(' ');
+}
+
+// has the position at the end of the list occurred before?
+function isRepetition () {
+    var last = repetitionKeys.length - 1;
+    if (last < 1) return false;
+
+    var key = repetitionKeys[last];
+    for (var i = last - 1; i >= 0; i--) {
+        if (repetitionKeys[i] === key) return true;
+    }
+    return false;
+}
+
+/*
+ * Position keys of the game played so far, so the engine also notices
+ * repetitions of positions from before it started thinking. Captures and
+ * pawn moves are irreversible: everything before them can never come back,
+ * so the list is cleared there and stays short.
+ */
+function buildRepetitionHistory (game) {
+    var keys = [];
+    var replay = new Chess();
+    var history = game.history({ verbose: true });
+
+    keys.push(positionKey(replay));
+    for (var i = 0; i < history.length; i++) {
+        replay.move(history[i].san);
+        if (history[i].captured || history[i].piece === 'p') {
+            keys.length = 0;
+        }
+        keys.push(positionKey(replay));
+    }
+    return keys;
+}
+
+// ---------------------------------------------------------------------------
 // Quiescence search: at depth 0, keep playing captures (and promotions)
 // until the position is "quiet". Prevents the classic horizon effect
 // ("takes a pawn, loses the queen one move later").
@@ -320,8 +372,10 @@ function quiescence (game, alpha, beta, colorSign) {
  * Returns the score of the position from the point of view of the side
  * to move. colorSign is +1 when White is to move, -1 when Black is.
  * ply is the distance from the root (used to prefer faster mates).
+ * halfMoves is the fifty-move counter, carried along instead of asking
+ * chess.js for it.
  */
-function negamax (game, depth, alpha, beta, colorSign, ply) {
+function negamax (game, depth, alpha, beta, colorSign, ply, halfMoves) {
     searchNodes++;
     checkTime();
     if (searchAborted) return 0;
@@ -333,10 +387,15 @@ function negamax (game, depth, alpha, beta, colorSign, ply) {
         return game.in_check() ? -(MATE_VALUE - ply) : 0;
     }
 
-    // draw by 50-move rule, insufficient material or threefold repetition
-    if (game.in_draw() || game.in_threefold_repetition()) {
-        return 0;
-    }
+    // fifty-move rule
+    if (halfMoves >= 100) return 0;
+
+    // repetition (impossible before four half-moves without a capture)
+    if (halfMoves >= 4 && isRepetition()) return 0;
+
+    // too little material to mate: this can only newly appear right after
+    // a capture or pawn move, which is exactly when halfMoves is back to 0
+    if (halfMoves === 0 && game.insufficient_material()) return 0;
 
     if (depth === 0) {
         return quiescence(game, alpha, beta, colorSign);
@@ -346,8 +405,18 @@ function negamax (game, depth, alpha, beta, colorSign, ply) {
 
     var best = -Infinity;
     for (var i = 0; i < moves.length; i++) {
+        var childHalfMoves = (moves[i].captured || moves[i].piece === 'p')
+            ? 0
+            : halfMoves + 1;
+
         game.move(moves[i]);
-        var score = -negamax(game, depth - 1, -beta, -alpha, -colorSign, ply + 1);
+        var tracked = childHalfMoves >= 4;
+        if (tracked) repetitionKeys.push(positionKey(game));
+
+        var score = -negamax(game, depth - 1, -beta, -alpha, -colorSign,
+                             ply + 1, childHalfMoves);
+
+        if (tracked) repetitionKeys.pop();
         game.undo(); // must always run, even when the search is being aborted
 
         if (searchAborted) return 0;
@@ -370,7 +439,7 @@ function negamax (game, depth, alpha, beta, colorSign, ply) {
  * alpha narrowing, everything except the best move only gets an upper bound,
  * which is useless for picking between near-equal moves.
  */
-function searchRoot (game, depth, colorSign, rootMoves, exactScores) {
+function searchRoot (game, depth, colorSign, rootMoves, exactScores, halfMoves) {
     var alpha = -Infinity;
     var beta = Infinity;
     var bestMove = rootMoves[0];
@@ -378,8 +447,18 @@ function searchRoot (game, depth, colorSign, rootMoves, exactScores) {
     var scored = [];
 
     for (var i = 0; i < rootMoves.length; i++) {
+        var childHalfMoves = (rootMoves[i].captured || rootMoves[i].piece === 'p')
+            ? 0
+            : halfMoves + 1;
+
         game.move(rootMoves[i]);
-        var score = -negamax(game, depth - 1, -beta, -alpha, -colorSign, 1);
+        var tracked = childHalfMoves >= 4;
+        if (tracked) repetitionKeys.push(positionKey(game));
+
+        var score = -negamax(game, depth - 1, -beta, -alpha, -colorSign,
+                             1, childHalfMoves);
+
+        if (tracked) repetitionKeys.pop();
         game.undo(); // must always run, even when the search is being aborted
 
         if (searchAborted) return null;
@@ -442,6 +521,10 @@ function getBestMove (game) {
     // remember where the real game ends, so trial moves can never leak out
     var realHistoryLength = game.history().length;
 
+    // draw bookkeeping for this search
+    repetitionKeys = buildRepetitionHistory(game);
+    var rootHalfMoves = parseInt(game.fen().split(' ')[4], 10) || 0;
+
     var colorSign = game.turn() === 'w' ? 1 : -1;
     var rootMoves = orderMoves(game.moves({ verbose: true }));
 
@@ -457,7 +540,8 @@ function getBestMove (game) {
     var forcedMate = false;
 
     for (var depth = 1; depth <= level.maxDepth; depth++) {
-        var result = searchRoot(game, depth, colorSign, rootMoves, inOpening);
+        var result = searchRoot(game, depth, colorSign, rootMoves, inOpening,
+                                rootHalfMoves);
 
         // time ran out during this depth: keep the move of the last finished depth
         if (result === null) break;
@@ -492,6 +576,7 @@ function getBestMove (game) {
     while (game.history().length > realHistoryLength) {
         game.undo();
     }
+    repetitionKeys = [];
 
     return bestMove;
 }

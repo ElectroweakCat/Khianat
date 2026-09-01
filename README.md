@@ -17,7 +17,7 @@ Khianat runs entirely in the browser — no engine server, no cloud.
 3. **Quiescence search:** capture sequences are played out at the leaves to avoid horizon-effect blunders.
 4. **Evaluation:** material values plus piece square tables (adapted from Sunfish), with a separate king table for the endgame. Checkmate is scored by distance to mate; stalemate and draws count as zero.
 
-Estimated playing strength: roughly 1500–1700 Elo against human casual players at the highest difficulty. A detailed, illustrated explanation lives on the [About page](https://khianat.org/about.html).
+Estimated playing strength: roughly 1600–1800 Elo against human casual players at the highest difficulty. A detailed, illustrated explanation lives on the [About page](https://khianat.org/about.html).
 
 ## Tech stack
 

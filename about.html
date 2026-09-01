@@ -223,43 +223,49 @@
         <section class="card doc">
           <h2>Performance and stability</h2>
           <p>The search runs in a Web Worker, a background thread, so the page stays responsive while Khianat thinks (if the browser does not allow a worker, the engine simply thinks in the foreground instead). Beyond that, the search has to be a bit careful:</p>
+          <p>Draws are another example of something that has to be cheap. Asking the chess library whether a position has occurred before means taking the entire game apart and putting it back together, which is fine once per move but ruinous inside a search that visits thousands of positions per second. The engine therefore keeps its own short list of positions and counts the moves since the last capture itself.</p>
           <p>The clock is only checked every so often, because reading the system time is surprisingly expensive. When the time is up, the search does not abort with an exception; it sets a flag and unwinds level by level, so every trial move is guaranteed to be taken back (a lesson learned the hard way, see blog entry #8). As a second safety net the engine remembers the length of the real game history before thinking and restores it afterwards, so the game state can never be corrupted by the search.</p>
           <p>With all of this, Khianat at full strength searches several half-moves deep in the middlegame and clearly deeper in the endgame.</p>
         </section>
 
         <section class="card doc">
           <h2>Playing strength</h2>
-          <p>My honest estimate: around 1500 to 1700 Elo against human casual players at the highest difficulty. Khianat calculates short tactics reliably, does not hang pieces to simple threats and wins won positions cleanly. The lower difficulty levels scale this down to something a beginner can beat. Its known weaknesses: the evaluation knows nothing about pawn structure, king safety or mobility, there is no transposition table (the same position reached by different move orders is searched again), and quiet positional play beyond its search depth escapes it. Patient, solid play is the best recipe against it.</p>
+          <p>My honest estimate: around 1600 to 1800 Elo against human casual players at the highest difficulty. Khianat calculates short tactics reliably, does not hang pieces to simple threats and wins won positions cleanly. The lower difficulty levels scale this down to something a beginner can beat. Its known weaknesses: the evaluation knows nothing about pawn structure, king safety or mobility, there is no transposition table (the same position reached by different move orders is searched again), and quiet positional play beyond its search depth escapes it. Patient, solid play is the best recipe against it.</p>
           <figure>
             <svg viewBox="0 0 700 310" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Elo history of Khianat">
               <g stroke="rgba(235,235,196,0.2)" stroke-width="1">
                 <line x1="70" y1="260" x2="660" y2="260"/>
-                <line x1="70" y1="197" x2="660" y2="197"/>
-                <line x1="70" y1="135" x2="660" y2="135"/>
-                <line x1="70" y1="72" x2="660" y2="72"/>
+                <line x1="70" y1="210" x2="660" y2="210"/>
+                <line x1="70" y1="160" x2="660" y2="160"/>
+                <line x1="70" y1="110" x2="660" y2="110"/>
+                <line x1="70" y1="60" x2="660" y2="60"/>
               </g>
               <g fill="rgba(235,235,196,0.6)" font-size="12" text-anchor="end" font-family="Georgia, serif">
                 <text x="62" y="264">0</text>
-                <text x="62" y="201">500</text>
-                <text x="62" y="139">1000</text>
-                <text x="62" y="76">1500</text>
+                <text x="62" y="214">500</text>
+                <text x="62" y="164">1000</text>
+                <text x="62" y="114">1500</text>
+                <text x="62" y="64">2000</text>
               </g>
-              <polyline points="140,229 350,204 580,52" fill="none" stroke="#f0d9b5" stroke-width="2.5"/>
+              <polyline points="130,235 300,215 470,100 620,90" fill="none" stroke="#f0d9b5" stroke-width="2.5"/>
               <g fill="#f0d9b5" stroke="#6f1d1d" stroke-width="1.5">
-                <circle cx="140" cy="229" r="6"/>
-                <circle cx="350" cy="204" r="6"/>
-                <circle cx="580" cy="52" r="6"/>
+                <circle cx="130" cy="235" r="6"/>
+                <circle cx="300" cy="215" r="6"/>
+                <circle cx="470" cy="100" r="6"/>
+                <circle cx="620" cy="90" r="6"/>
               </g>
               <g fill="rgba(235,235,196,0.75)" font-size="13" text-anchor="middle" font-family="Georgia, serif">
-                <text x="140" y="290">random moves</text>
-                <text x="350" y="290">greedy, depth 1</text>
-                <text x="580" y="290">alpha-beta search</text>
-                <text x="140" y="212">~250</text>
-                <text x="350" y="187">~450</text>
-                <text x="580" y="35">~1500&#8211;1700</text>
+                <text x="130" y="290">random moves</text>
+                <text x="300" y="290">greedy, depth 1</text>
+                <text x="470" y="290">alpha-beta search</text>
+                <text x="620" y="290">faster search</text>
+                <text x="130" y="222">~250</text>
+                <text x="300" y="202">~450</text>
+                <text x="470" y="87">~1500&#8211;1700</text>
+                <text x="620" y="77">~1600&#8211;1800</text>
               </g>
             </svg>
-            <figcaption>Estimated strength of the three engine generations so far. These are honest guesses, not measured ratings: Khianat has never played a rated game.</figcaption>
+            <figcaption>Estimated strength of the engine generations so far. These are honest guesses, not measured ratings: Khianat has never played a rated game.</figcaption>
           </figure>
           <p><strong>What could come next?</strong> A transposition table, pawn structure and king safety in the evaluation, and check evasions in the quiescence search. Each of these is a realistic future blog entry.</p>
         </section>
