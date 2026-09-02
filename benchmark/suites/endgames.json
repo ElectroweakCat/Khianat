@@ -1,0 +1,67 @@
+{
+  "name": "Basic endgame technique",
+  "source": "Hand-written textbook positions, no licence restrictions.",
+  "method": "Khianat plays the strong side against a random legal defence and has to deliver mate within the given number of moves. Every position appears twice, once with White and once with Black to move, so the test does not favour one colour. A random defender is weak on purpose: an engine with working technique mates it easily, an engine without one shuffles until the limit.",
+  "positions": [
+    {
+      "id": "kq-vs-k-white",
+      "fen": "8/8/8/4k3/8/8/8/3QK3 w - - 0 1",
+      "maxMoves": 25,
+      "description": "Queen and king against a bare king (White)"
+    },
+    {
+      "id": "kq-vs-k-black",
+      "fen": "3qk3/8/8/4K3/8/8/8/8 b - - 0 1",
+      "maxMoves": 25,
+      "description": "Queen and king against a bare king (Black)"
+    },
+    {
+      "id": "kr-vs-k-white",
+      "fen": "8/8/8/4k3/8/8/8/3RK3 w - - 0 1",
+      "maxMoves": 35,
+      "description": "Rook and king against a bare king (White)"
+    },
+    {
+      "id": "kr-vs-k-black",
+      "fen": "3rk3/8/8/4K3/8/8/8/8 b - - 0 1",
+      "maxMoves": 35,
+      "description": "Rook and king against a bare king (Black)"
+    },
+    {
+      "id": "krr-vs-k-white",
+      "fen": "8/8/8/4k3/8/8/8/3RKR2 w - - 0 1",
+      "maxMoves": 15,
+      "description": "Two rooks, the easiest mate there is (White)"
+    },
+    {
+      "id": "krr-vs-k-black",
+      "fen": "3rkr2/8/8/4K3/8/8/8/8 b - - 0 1",
+      "maxMoves": 15,
+      "description": "Two rooks, the easiest mate there is (Black)"
+    },
+    {
+      "id": "kp-promotion-white",
+      "fen": "8/8/8/8/8/1K6/P7/7k w - - 0 1",
+      "maxMoves": 40,
+      "description": "Escort a pawn home while the enemy king is far away (White)"
+    },
+    {
+      "id": "kp-promotion-black",
+      "fen": "7K/p7/1k6/8/8/8/8/8 b - - 0 1",
+      "maxMoves": 40,
+      "description": "Escort a pawn home while the enemy king is far away (Black)"
+    },
+    {
+      "id": "kbn-vs-k-white",
+      "fen": "8/8/8/4k3/8/8/8/2B1KN2 w - - 0 1",
+      "maxMoves": 60,
+      "description": "Bishop and knight mate, known to be beyond engines of this size (White)"
+    },
+    {
+      "id": "kbn-vs-k-black",
+      "fen": "2b1kn2/8/8/4K3/8/8/8/8 b - - 0 1",
+      "maxMoves": 60,
+      "description": "Bishop and knight mate, known to be beyond engines of this size (Black)"
+    }
+  ]
+}
