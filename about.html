@@ -26,6 +26,8 @@
 
   <body>
 
+      <a href="#main" class="skip-link">Skip to content</a>
+
       <header class="site-header">
         <h1>About</h1>
         <p class="tagline">How Khianat works under the hood</p>
@@ -35,12 +37,13 @@
         <a href="index.html">Home</a>
         <a href="index.html#Play">Play</a>
         <a href="stats.html">Stats</a>
+        <a href="benchmark.html">Benchmark</a>
         <a href="about.html" class="active">About</a>
         <a href="blog.html">Blog</a>
         <a href="impressum.html">Impressum</a>
       </nav>
 
-      <main>
+      <main id="main">
 
         <section class="card doc">
           <h2>What is Khianat?</h2>
@@ -230,7 +233,7 @@
 
         <section class="card doc">
           <h2>Playing strength</h2>
-          <p>My honest estimate: around 1600 to 1800 Elo against human casual players at the highest difficulty. Khianat calculates short tactics reliably, does not hang pieces to simple threats and wins won positions cleanly. The lower difficulty levels scale this down to something a beginner can beat. Its known weaknesses: the evaluation knows nothing about pawn structure, king safety or mobility, there is no transposition table (the same position reached by different move orders is searched again), and quiet positional play beyond its search depth escapes it. Patient, solid play is the best recipe against it.</p>
+          <p>My honest estimate, and it really is only an estimate: around 1600 to 1800 Elo against human casual players at the highest difficulty. It comes from what the engine can do, not from games it has played, so treat it accordingly. The <a href="benchmark.html">benchmark page</a> explains what can actually be measured and shows those results. Khianat calculates short tactics reliably, does not hang pieces to simple threats and wins won positions cleanly. The lower difficulty levels scale this down to something a beginner can beat. Its known weaknesses: the evaluation knows nothing about pawn structure, king safety or mobility, there is no transposition table (the same position reached by different move orders is searched again), and quiet positional play beyond its search depth escapes it. Patient, solid play is the best recipe against it.</p>
           <figure>
             <svg viewBox="0 0 700 310" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Elo history of Khianat">
               <g stroke="rgba(235,235,196,0.2)" stroke-width="1">
@@ -265,7 +268,7 @@
                 <text x="620" y="77">~1600&#8211;1800</text>
               </g>
             </svg>
-            <figcaption>Estimated strength of the engine generations so far. These are honest guesses, not measured ratings: Khianat has never played a rated game.</figcaption>
+            <figcaption>Estimated strength of the engine generations so far. These are honest guesses, not measured ratings: Khianat has never played a rated game. Measured results live on the <a href="benchmark.html">benchmark page</a>.</figcaption>
           </figure>
           <p><strong>What could come next?</strong> A transposition table, pawn structure and king safety in the evaluation, and check evasions in the quiescence search. Each of these is a realistic future blog entry.</p>
         </section>

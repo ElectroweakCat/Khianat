@@ -5,5 +5,6 @@ Disallow: /stats.php
 Disallow: /poll-data.json
 Disallow: /poll-voters.json
 Disallow: /stats-data.json
+Disallow: /benchmark/
 
 Sitemap: https://khianat.org/sitemap.xml

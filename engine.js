@@ -25,6 +25,10 @@
 // Search configuration
 // ---------------------------------------------------------------------------
 
+// Bump this whenever the engine changes in a way that could affect its
+// playing strength, so benchmark results stay comparable across versions.
+var KHIANAT_VERSION = '1.3.0';
+
 // Difficulty levels: how long and how deep Khianat may think per move.
 // Level 5 is the full engine, lower levels cap the depth and thinking time.
 // varietyMargin says how much worse than the best move an opening move may

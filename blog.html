@@ -26,6 +26,8 @@
 
   <body>
 
+      <a href="#main" class="skip-link">Skip to content</a>
+
       <header class="site-header">
         <h1>Blog</h1>
         <p class="tagline">Small steps archived</p>
@@ -35,12 +37,20 @@
         <a href="index.html">Home</a>
         <a href="index.html#Play">Play</a>
         <a href="stats.html">Stats</a>
+        <a href="benchmark.html">Benchmark</a>
         <a href="about.html">About</a>
         <a href="blog.html" class="active">Blog</a>
         <a href="impressum.html">Impressum</a>
       </nav>
 
-      <main>
+      <main id="main">
+        <article class="card">
+          <h2>#15 entry <span class="date">(09.08.26)</span></h2>
+          Accessibility pass. Better contrast for the small text, a visible focus outline for keyboard users, and screen readers now hear the status, Khianat's moves and the captured pieces. Nothing changed visually, the site is just usable for more people now.
+          <br><br>
+          There is also a benchmark now, because the Elo number was always just a guess. It measures tactics against rated Lichess puzzles, forced mates, endgame technique, how many centipawns Khianat gives away per move, and the score against a rating limited Stockfish. Everything runs offline at a fixed search depth, so the numbers survive a change of machine. The new Benchmark page explains the method and will show the results. It is empty for now, and it stays empty until I have actually run it.
+        </article>
+
         <article class="card">
           <h2>#14 entry <span class="date">(09.08.26)</span></h2>
           Small comfort feature: the captured pieces now sit above and below the board, with a plus score for whoever is ahead. No more counting pawns by hand.

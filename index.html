@@ -74,6 +74,8 @@
 
   <body>
 
+      <a href="#main" class="skip-link">Skip to content</a>
+
       <header class="site-header">
         <img src="logo.svg" alt="Khianat logo: a pawn casting the shadow of a queen" class="site-logo">
         <h1>Khianat</h1>
@@ -84,12 +86,13 @@
         <a href="index.html" class="active">Home</a>
         <a href="#Play">Play</a>
         <a href="stats.html">Stats</a>
+        <a href="benchmark.html">Benchmark</a>
         <a href="about.html">About</a>
         <a href="blog.html">Blog</a>
         <a href="impressum.html">Impressum</a>
       </nav>
 
-      <main>
+      <main id="main">
       <section class="card">
         Play chess online against Khianat, a chess engine built from scratch in JavaScript. Free, right in your browser, no signup.
         <hr>
@@ -116,7 +119,7 @@
           </fieldset>
           <input type="submit" name="submit" value="Submit">
         </form>
-        <div id="surveyResult"></div>
+        <div id="surveyResult" aria-live="polite"></div>
 
         <script>
           // Survey: send the vote to poll.php and set a matching difficulty.
@@ -191,11 +194,12 @@
           </select>
           <button id="soundBtn" type="button" aria-pressed="true">Sound: on</button>
         </div>
-        <div id="capturedTop" class="captured" aria-label="Pieces captured by Khianat"></div>
+        <div id="capturedTop" class="captured" role="img" aria-label="Khianat has captured nothing"></div>
         <div id="myBoard"></div>
-        <div id="capturedBottom" class="captured" aria-label="Pieces you captured"></div>
-        <div class="status-line">Status: <span id="status"></span></div>
+        <div id="capturedBottom" class="captured" role="img" aria-label="You have captured nothing"></div>
+        <div class="status-line">Status: <span id="status" aria-live="polite"></span></div>
         <button id="gameBtn" type="button">New game</button>
+        <p id="moveAnnouncement" class="visually-hidden" aria-live="polite"></p>
 
         <div class="game-stats">
           <div class="stats-block">
@@ -283,6 +287,10 @@
           board.position(game.fen())
           playMoveSound()
           highlightMove(played.from, played.to)
+
+          // for screen readers: the move itself is only visible on the board
+          $('#moveAnnouncement').text('Khianat plays ' + played.san)
+
           updateStatus()
           saveCurrentGame()
         }
@@ -500,8 +508,15 @@
         var PIECE_POINTS = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 }
         var CAPTURE_ORDER = ['q', 'r', 'b', 'n', 'p']
 
-        function renderCaptured (element, color, counts, diff) {
+        var PIECE_NAMES = { p: 'pawn', n: 'knight', b: 'bishop', r: 'rook', q: 'queen' }
+
+        // The icons carry no alt text (a row of "pawn pawn pawn" helps nobody),
+        // so the row itself gets one summarising label for screen readers.
+        // Nothing about this is visible on screen.
+        function renderCaptured (element, color, counts, diff, who) {
           var html = ''
+          var spoken = []
+
           for (var i = 0; i < CAPTURE_ORDER.length; i++) {
             var type = CAPTURE_ORDER[i]
             var count = counts[type] || 0
@@ -509,11 +524,21 @@
               html += '<img src="img/chesspieces/wikipedia/' + color + type.toUpperCase() +
                       '.png" alt="">'
             }
+            if (count > 0) {
+              spoken.push(count + ' ' + PIECE_NAMES[type] + (count > 1 ? 's' : ''))
+            }
           }
+
           if (diff > 0) {
             html += '<span class="material-diff">+' + diff + '</span>'
           }
+
           element.innerHTML = html
+          element.setAttribute('aria-label',
+            who + (spoken.length === 0
+              ? ' has captured nothing'
+              : ' has captured ' + spoken.join(', ') +
+                (diff > 0 ? ', leading by ' + diff : '')))
         }
 
         function updateMaterial () {
@@ -539,8 +564,8 @@
             }
           }
 
-          renderCaptured(document.getElementById('capturedTop'), 'w', takenByBlack, -balance)
-          renderCaptured(document.getElementById('capturedBottom'), 'b', takenByWhite, balance)
+          renderCaptured(document.getElementById('capturedTop'), 'w', takenByBlack, -balance, 'Khianat')
+          renderCaptured(document.getElementById('capturedBottom'), 'b', takenByWhite, balance, 'You')
         }
 
         // mark the from and to squares of the move that was just played

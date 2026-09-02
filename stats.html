@@ -29,6 +29,8 @@
 
   <body>
 
+      <a href="#main" class="skip-link">Skip to content</a>
+
       <header class="site-header">
         <h1>Stats</h1>
         <p class="tagline">How humanity is doing against Khianat</p>
@@ -38,12 +40,13 @@
         <a href="index.html">Home</a>
         <a href="index.html#Play">Play</a>
         <a href="stats.html" class="active">Stats</a>
+        <a href="benchmark.html">Benchmark</a>
         <a href="about.html">About</a>
         <a href="blog.html">Blog</a>
         <a href="impressum.html">Impressum</a>
       </nav>
 
-      <main>
+      <main id="main">
 
         <section class="card">
           <h2>Khianat's overall record</h2>
@@ -267,7 +270,7 @@
           }
 
           document.getElementById('dailyStats').innerHTML =
-            '<div class="day-cols">' + cols + '</div>' +
+            '<div class="day-cols" aria-hidden="true">' + cols + '</div>' +
             '<div class="result-legend">' + days[0][0] + ' to ' + days[days.length - 1][0] +
             ' &middot; ' + total + ' games</div>'
         }

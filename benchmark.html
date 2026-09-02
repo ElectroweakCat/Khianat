@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>Khianat Benchmark &ndash; How Strong Is the Engine Really?</title>
+      <meta name="description" content="How the Khianat chess engine is measured: tactics suites, forced mates, endgame technique, centipawn loss and matches against Stockfish, with all results and their limits.">
+      <link rel="canonical" href="https://khianat.org/benchmark.html">
+
+      <meta property="og:type" content="website">
+      <meta property="og:site_name" content="Khianat">
+      <meta property="og:url" content="https://khianat.org/benchmark.html">
+      <meta property="og:title" content="Khianat Benchmark">
+      <meta property="og:description" content="Measuring a self-made chess engine: tactics, mates, endgames and matches against Stockfish.">
+      <meta property="og:image" content="https://khianat.org/social-preview.png">
+      <meta name="twitter:card" content="summary_large_image">
+
+      <link rel="icon" type="image/x-icon" href="favicon.ico">
+      <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+      <!-- central stylesheet -->
+      <link rel="stylesheet" href="style.css">
+  </head>
+
+  <body>
+
+      <a href="#main" class="skip-link">Skip to content</a>
+
+      <header class="site-header">
+        <h1>Benchmark</h1>
+        <p class="tagline">How strong is Khianat really?</p>
+      </header>
+
+      <nav class="site-nav">
+        <a href="index.html">Home</a>
+        <a href="index.html#Play">Play</a>
+        <a href="stats.html">Stats</a>
+        <a href="benchmark.html" class="active">Benchmark</a>
+        <a href="about.html">About</a>
+        <a href="blog.html">Blog</a>
+        <a href="impressum.html">Impressum</a>
+      </nav>
+
+      <main id="main">
+
+        <section class="card doc">
+          <h2>Why this page exists</h2>
+          <p>The Elo number on the About page has always been a guess, made from the list of features the engine has. That is not worth much. This page collects what can actually be measured, together with everything those measurements cannot tell us.</p>
+          <p>All tests run offline, on my own machine, with a fixed search depth. Fixed depth matters: the difficulty levels on the Play page are defined by thinking time, so a fast computer would look stronger than a phone. Depth is the same everywhere, which makes runs comparable between machines and between engine versions. The opening randomisation is switched off while measuring, so a run can be repeated with the same result.</p>
+        </section>
+
+        <section class="card doc">
+          <h2>The tests</h2>
+          <p><strong>Tactics.</strong> Puzzles from the Lichess database, which is public domain and, more importantly, comes with a rating for every puzzle. Sorted into rating bands, the solve rate shows where Khianat starts to fail. The rating at which it solves half the puzzles is the closest thing to a measured number this project has.</p>
+          <p><strong>Forced mates.</strong> Mate in two and mate in three. Pass or fail, no partial credit.</p>
+          <p><strong>Endgame technique.</strong> Can the engine actually finish? Queen and king against a bare king, rook and king, two rooks, escorting a pawn home. It plays against a random defence and has to mate within a move limit.</p>
+          <p><strong>Move quality.</strong> Khianat plays against itself and Stockfish judges every move: how many centipawns did it give away compared to the best move? This is the same measure used to analyse human games.</p>
+          <p><strong>Match play.</strong> Games against a rating limited Stockfish, with colours alternating. The score is converted into a rating difference.</p>
+          <p>Stockfish is only used offline. It is licensed under the GPL and is not part of this website, so nothing here makes the site bigger or slower.</p>
+        </section>
+
+        <section class="card">
+          <h2>Results</h2>
+          <div id="results"><p class="result-legend">Loading&hellip;</p></div>
+        </section>
+
+        <section class="card doc">
+          <h2>What the numbers do not say</h2>
+          <p>Solving puzzles is not the same as playing well. A puzzle announces that something is there to be found; a real game does not. Khianat could be sharp tactically and still drift in quiet positions, and the evaluation function it uses says nothing about pawn structure or king safety.</p>
+          <p>Stockfish's rating limiter runs on its own scale. It is not a human rating, and a score against it does not translate cleanly into one. Even a forty game match leaves an uncertainty of well over a hundred points, which is why any Elo figure here comes with its confidence interval attached.</p>
+          <p>So: the tactics rating is measured, the match results are measured, and every Elo number derived from them is an orientation. Khianat has never played a rated game against a human.</p>
+        </section>
+
+        <section class="card">
+          <h2>Quick test in your browser</h2>
+          <p class="stats-title">A small version of the suites above, run on your device. Fewer positions, and the timings depend on your hardware, so this is for curiosity rather than for the record.</p>
+          <div class="difficulty-row">
+            <label for="benchDepth">Search depth:</label>
+            <select id="benchDepth">
+              <option value="2">2</option>
+              <option value="3" selected>3</option>
+              <option value="4">4</option>
+            </select>
+            <button id="benchRun" type="button">Run test</button>
+          </div>
+          <div id="benchOutput" aria-live="polite"></div>
+        </section>
+
+      </main>
+
+      <footer>
+        Copyright &copy; 2026 Benjamin Berger &middot; <a href="https://github.com/ElectroweakCat/Khianat">Source on GitHub</a>
+      </footer>
+
+      <script>
+        // ----- published results -----
+
+        function bar (label, value, max, caption) {
+          var width = max > 0 ? (value / max) * 100 : 0
+          return '<div class="stat-row">' +
+                   '<div class="stats-title">' + label + '</div>' +
+                   '<div class="result-bar">' +
+                     '<span class="seg-w" style="width:' + width.toFixed(1) + '%"></span>' +
+                   '</div>' +
+                   '<div class="result-legend">' + caption + '</div>' +
+                 '</div>'
+        }
+
+        function renderTactics (tactics) {
+          var html = '<h3>Tactics</h3>'
+          for (var i = 0; i < tactics.bands.length; i++) {
+            var band = tactics.bands[i]
+            var rate = band.total ? Math.round((band.solved / band.total) * 100) : 0
+            html += bar('Puzzles rated ' + band.from + ' to ' + band.to,
+                        band.solved, band.total,
+                        band.solved + ' of ' + band.total + ' solved (' + rate + '%)')
+          }
+          html += '<p class="result-legend">' +
+                  (tactics.ratingEstimate
+                    ? 'Solves half the puzzles at about <strong>' + tactics.ratingEstimate + '</strong> puzzle rating.'
+                    : 'The solve rate never crosses 50% in this sample, so no crossing point can be given.') +
+                  '</p>'
+          return html
+        }
+
+        function renderMates (mates) {
+          var html = '<h3>Forced mates</h3>'
+          for (var i = 0; i < mates.groups.length; i++) {
+            var group = mates.groups[i]
+            var label = group.id === 'mateIn2' ? 'Mate in two' : 'Mate in three'
+            html += bar(label, group.solved, group.total,
+                        group.solved + ' of ' + group.total + ' found')
+          }
+          return html
+        }
+
+        function renderEndgames (endgames) {
+          var html = '<h3>Endgame technique</h3><div class="fact-list">'
+          for (var i = 0; i < endgames.positions.length; i++) {
+            var test = endgames.positions[i]
+            html += '<p>' + (test.solved ? '&#10003;' : '&#10007;') + ' ' + test.description +
+                    (test.solved ? ' &mdash; mate in ' + test.moves + ' moves'
+                                 : ' &mdash; not mated within ' + test.maxMoves + ' moves') +
+                    '</p>'
+          }
+          return html + '</div>'
+        }
+
+        function renderAcpl (acpl) {
+          return '<h3>Move quality</h3>' +
+                 '<div class="big-stats">' +
+                   '<div class="big-stat"><div class="stat-number">' + acpl.averageCentipawnLoss + '</div>' +
+                     '<div class="stat-label">average centipawn loss</div></div>' +
+                   '<div class="big-stat"><div class="stat-number">' + acpl.blunderRate + '%</div>' +
+                     '<div class="stat-label">moves losing 2 pawns or more</div></div>' +
+                 '</div>' +
+                 '<p class="result-legend">' + acpl.movesJudged + ' moves judged by Stockfish at depth ' +
+                 acpl.stockfishDepth + '.</p>'
+        }
+
+        function renderMatches (matches) {
+          var html = '<h3>Match play</h3>'
+          for (var i = 0; i < matches.length; i++) {
+            var match = matches[i]
+            html += '<div class="stat-row">' +
+                      '<div class="stats-title">' + match.opponent + '</div>' +
+                      '<div class="result-bar">' +
+                        '<span class="seg-w" style="width:' + ((match.wins / match.games) * 100).toFixed(1) + '%"></span>' +
+                        '<span class="seg-d" style="width:' + ((match.draws / match.games) * 100).toFixed(1) + '%"></span>' +
+                        '<span class="seg-l" style="width:' + ((match.losses / match.games) * 100).toFixed(1) + '%"></span>' +
+                      '</div>' +
+                      '<div class="result-legend">' +
+                        match.wins + ' wins, ' + match.draws + ' draws, ' + match.losses +
+                        ' losses in ' + match.games + ' games (' + match.score + '%) &middot; ' +
+                        'suggests roughly ' + match.estimatedElo +
+                        (match.confidence95 ? ' &plusmn; ' + match.confidence95 : '') +
+                        ' on Stockfish\'s own scale' +
+                      '</div>' +
+                    '</div>'
+          }
+          return html
+        }
+
+        function renderRun (run) {
+          var html = '<p class="result-legend">Engine version ' + run.engineVersion +
+                     ', fixed depth ' + run.searchDepth + ', measured on ' + run.date +
+                     '.<br>' + run.machine + '</p>'
+
+          if (run.tests.puzzles) html += renderTactics(run.tests.puzzles)
+          if (run.tests.mates) html += renderMates(run.tests.mates)
+          if (run.tests.endgames) html += renderEndgames(run.tests.endgames)
+          if (run.tests.acpl) html += renderAcpl(run.tests.acpl)
+          if (run.tests.matches && run.tests.matches.length) html += renderMatches(run.tests.matches)
+
+          return html
+        }
+
+        function renderHistory (runs) {
+          if (runs.length < 2) return ''
+
+          var html = '<h3>Across versions</h3><div class="fact-list">'
+          for (var i = 0; i < runs.length; i++) {
+            var run = runs[i]
+            var bits = []
+            if (run.tests.puzzles && run.tests.puzzles.ratingEstimate) {
+              bits.push('tactics ' + run.tests.puzzles.ratingEstimate)
+            }
+            if (run.tests.acpl && run.tests.acpl.averageCentipawnLoss !== null) {
+              bits.push(run.tests.acpl.averageCentipawnLoss + ' cp loss')
+            }
+            html += '<p><strong>' + run.engineVersion + '</strong> (depth ' + run.searchDepth +
+                    ', ' + run.date + ')' + (bits.length ? ' &mdash; ' + bits.join(', ') : '') + '</p>'
+          }
+          return html + '</div>'
+        }
+
+        fetch('benchmark-results.json')
+          .then(function (response) {
+            if (!response.ok) throw new Error('no results file')
+            return response.json()
+          })
+          .then(function (data) {
+            var runs = data.runs || []
+            if (runs.length === 0) {
+              document.getElementById('results').innerHTML =
+                '<p>No benchmark has been run yet. The runner is finished and lives in the ' +
+                '<a href="https://github.com/ElectroweakCat/Khianat/tree/main/benchmark">benchmark folder</a> ' +
+                'of the repository. As soon as the first run is done, its results appear here ' +
+                'instead of this notice. Rather than filling this space with made up numbers, ' +
+                'it stays empty.</p>'
+              return
+            }
+            var latest = runs[runs.length - 1]
+            document.getElementById('results').innerHTML = renderRun(latest) + renderHistory(runs)
+          })
+          .catch(function () {
+            document.getElementById('results').innerHTML =
+              '<p class="result-legend">The results file could not be loaded.</p>'
+          })
+
+        // ----- quick test in the browser -----
+
+        var QUICK_MATES = [
+          { id: 'Back rank mate', fen: '6k1/5ppp/8/8/8/8/8/4R2K w - - 0 1', best: 'e1e8' },
+          { id: 'Scholar\'s mate', fen: 'r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5Q2/PPPP1PPP/RNB1K1NR w KQkq - 0 1', best: 'f3f7' }
+        ]
+
+        var QUICK_ENDGAMES = [
+          { id: 'Queen against a bare king', fen: '8/8/8/4k3/8/8/8/3QK3 w - - 0 1', maxMoves: 25 },
+          { id: 'Rook against a bare king', fen: '8/8/8/4k3/8/8/8/3RK3 w - - 0 1', maxMoves: 35 },
+          { id: 'Two rooks', fen: '8/8/8/4k3/8/8/8/3RKR2 w - - 0 1', maxMoves: 15 },
+          { id: 'Escorting a pawn home', fen: '8/8/8/8/8/1K6/P7/7k w - - 0 1', maxMoves: 40 }
+        ]
+
+        document.getElementById('benchRun').addEventListener('click', function () {
+          var output = document.getElementById('benchOutput')
+          var button = document.getElementById('benchRun')
+          var depth = parseInt(document.getElementById('benchDepth').value, 10)
+
+          var worker
+          try {
+            worker = new Worker('benchmark-worker.js')
+          } catch (e) {
+            output.innerHTML = '<p class="result-legend">Your browser will not start the test worker here. ' +
+                               'This usually happens when the page is opened as a local file.</p>'
+            return
+          }
+
+          button.disabled = true
+          output.innerHTML = '<p class="result-legend">Running&hellip;</p>'
+
+          worker.onmessage = function (event) {
+            if (event.data.progress) {
+              output.innerHTML = '<p class="result-legend">Running&hellip; ' +
+                                 event.data.progress + ' of ' + event.data.total + '</p>'
+              return
+            }
+
+            var results = event.data.results
+            var solved = 0
+            var totalMs = 0
+            var html = '<div class="fact-list">'
+
+            for (var i = 0; i < results.length; i++) {
+              var result = results[i]
+              if (result.solved) solved++
+              totalMs += result.ms
+              html += '<p>' + (result.solved ? '&#10003;' : '&#10007;') + ' ' + result.id +
+                      ' &mdash; ' + (result.ms / 1000).toFixed(1) + ' s' +
+                      (result.moves ? ', mate in ' + result.moves + ' moves' : '') + '</p>'
+            }
+
+            html += '</div><p class="result-legend">' + solved + ' of ' + results.length +
+                    ' solved in ' + (totalMs / 1000).toFixed(1) + ' seconds, engine version ' +
+                    event.data.version + ', depth ' + depth +
+                    '. Your device, your numbers.</p>'
+
+            output.innerHTML = html
+            button.disabled = false
+            worker.terminate()
+          }
+
+          worker.onerror = function () {
+            output.innerHTML = '<p class="result-legend">The test could not be started.</p>'
+            button.disabled = false
+          }
+
+          worker.postMessage({ depth: depth, mates: QUICK_MATES, endgames: QUICK_ENDGAMES })
+        })
+      </script>
+
+  </body>
+
+  </html>
