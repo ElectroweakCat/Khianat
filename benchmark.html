@@ -25,8 +25,6 @@
 
   <body>
 
-      <a href="#main" class="skip-link">Skip to content</a>
-
       <header class="site-header">
         <h1>Benchmark</h1>
         <p class="tagline">How strong is Khianat really?</p>
@@ -44,37 +42,14 @@
 
       <main id="main">
 
-        <section class="card doc">
-          <h2>Why this page exists</h2>
-          <p>The Elo number on the About page has always been a guess, made from the features the engine has. This page collects what can actually be measured.</p>
-          <p>Everything runs offline at a fixed search depth. That matters: the difficulty levels are defined by thinking time, so a fast computer would look stronger than a phone. Depth is the same everywhere, and the opening randomisation is off while measuring, so a run can be repeated with the same result.</p>
-        </section>
-
-        <section class="card doc">
-          <h2>The tests</h2>
-          <p><strong>Tactics.</strong> Puzzles from the Lichess database, which is public domain and comes with a rating for every puzzle. The rating at which Khianat solves half of them is the closest thing to a measured number this project has.</p>
-          <p><strong>Forced mates.</strong> Mate in two and mate in three. Pass or fail.</p>
-          <p><strong>Endgame technique.</strong> Can it actually finish? Queen against a bare king, rook, two rooks, escorting a pawn home. Against a random defence, with a move limit, each position once as White and once as Black.</p>
-          <p><strong>Move quality.</strong> Khianat plays itself and Stockfish judges every move: how many centipawns did it give away? The same measure used to analyse human games.</p>
-          <p><strong>Match play.</strong> Games against a rating limited Stockfish, colours alternating.</p>
-          <p>Stockfish runs offline only. It is GPL licensed and no part of this website, so nothing here makes the site bigger or slower.</p>
-        </section>
-
         <section class="card">
           <h2>Results</h2>
           <div id="results"><p class="result-legend">Loading&hellip;</p></div>
         </section>
 
-        <section class="card doc">
-          <h2>What the numbers do not say</h2>
-          <p>Solving puzzles is not the same as playing well. A puzzle announces that something is there to be found; a real game does not. Khianat could be sharp tactically and still drift in quiet positions.</p>
-          <p>Stockfish's rating limiter runs on its own scale, not a human one, and even a forty game match leaves an uncertainty of well over a hundred points. That is why every Elo figure here comes with its confidence interval.</p>
-          <p>The solve rates and match scores are measured. Every Elo number derived from them is an orientation. Khianat has never played a rated game against a human.</p>
-        </section>
-
         <section class="card">
-          <h2>Quick test in your browser</h2>
-          <p class="stats-title">A small version of the suites above, run on your device. Timings depend on your hardware, so this is for curiosity rather than for the record.</p>
+          <h2>Test it yourself</h2>
+          <p class="stats-title">Watch Khianat solve mates and finish endgames, live on your device. Timings depend on your hardware, so this is for curiosity rather than for the record.</p>
           <div class="difficulty-row">
             <label for="benchDepth">Search depth:</label>
             <select id="benchDepth">
@@ -85,6 +60,24 @@
             <button id="benchRun" type="button">Run test</button>
           </div>
           <div id="benchOutput" aria-live="polite"></div>
+        </section>
+
+        <section class="card doc">
+          <h2>How it is measured</h2>
+          <p>Everything runs offline at a fixed search depth. That matters: the difficulty levels are defined by thinking time, so a fast computer would look stronger than a phone. Depth is the same everywhere, and the opening randomisation is off while measuring, so a run can be repeated with the same result.</p>
+          <p><strong>Tactics.</strong> Puzzles from the Lichess database, which is public domain and comes with a rating for every puzzle. The rating at which Khianat solves half of them is the closest thing to a measured number this project has.</p>
+          <p><strong>Forced mates.</strong> Mate in two and mate in three. Pass or fail.</p>
+          <p><strong>Endgame technique.</strong> Can it actually finish? Queen against a bare king, rook, two rooks, escorting a pawn home. Against a random defence, with a move limit, each position once as White and once as Black.</p>
+          <p><strong>Move quality.</strong> Khianat plays itself and Stockfish judges every move: how many centipawns did it give away? The same measure used to analyse human games.</p>
+          <p><strong>Match play.</strong> Games against a rating limited Stockfish, colours alternating.</p>
+          <p>Stockfish runs offline only. It is GPL licensed and no part of this website, so nothing here makes the site bigger or slower.</p>
+        </section>
+
+        <section class="card doc">
+          <h2>What the numbers do not say</h2>
+          <p>Solving puzzles is not the same as playing well. A puzzle announces that something is there to be found; a real game does not. Khianat could be sharp tactically and still drift in quiet positions.</p>
+          <p>Stockfish's rating limiter runs on its own scale, not a human one, and even a forty game match leaves an uncertainty of well over a hundred points. That is why every Elo figure here comes with its confidence interval.</p>
+          <p>The solve rates and match scores are measured. Every Elo number derived from them is an orientation. Khianat has never played a rated game against a human.</p>
         </section>
 
       </main>
@@ -224,11 +217,12 @@
             var runs = data.runs || []
             if (runs.length === 0) {
               document.getElementById('results').innerHTML =
-                '<p>No benchmark has been run yet. The runner is finished and lives in the ' +
+                '<p>No full benchmark has been run yet, and this stays empty until one has been. ' +
+                'No made up numbers. In the meantime you can run the short version yourself, ' +
+                'right below.</p>' +
+                '<p class="result-legend">The runner lives in the ' +
                 '<a href="https://github.com/ElectroweakCat/Khianat/tree/main/benchmark">benchmark folder</a> ' +
-                'of the repository. As soon as the first run is done, its results appear here ' +
-                'instead of this notice. Rather than filling this space with made up numbers, ' +
-                'it stays empty.</p>'
+                'of the repository.</p>'
               return
             }
             var latest = runs[runs.length - 1]
