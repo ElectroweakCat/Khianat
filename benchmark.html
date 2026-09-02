@@ -272,6 +272,14 @@
           output.innerHTML = '<p class="result-legend">Running&hellip;</p>'
 
           worker.onmessage = function (event) {
+            if (event.data.error) {
+              output.innerHTML = '<p class="result-legend">The test stopped: ' +
+                                 event.data.error + '</p>'
+              button.disabled = false
+              worker.terminate()
+              return
+            }
+
             if (event.data.progress) {
               output.innerHTML = '<p class="result-legend">Running&hellip; ' +
                                  event.data.progress + ' of ' + event.data.total + '</p>'
@@ -302,8 +310,9 @@
             worker.terminate()
           }
 
-          worker.onerror = function () {
-            output.innerHTML = '<p class="result-legend">The test could not be started.</p>'
+          worker.onerror = function (error) {
+            output.innerHTML = '<p class="result-legend">The test could not be started: ' +
+                               ((error && error.message) || 'unknown error') + '</p>'
             button.disabled = false
           }
 

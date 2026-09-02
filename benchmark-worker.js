@@ -65,17 +65,26 @@ function playEndgame (test, depth) {
 
 onmessage = function (event) {
     var request = event.data;
-    prepareEngine(request.depth);
+    var total = request.mates.length + request.endgames.length;
 
-    var results = [];
-    for (var i = 0; i < request.mates.length; i++) {
-        results.push(solveMate(request.mates[i], request.depth));
-        postMessage({ progress: results.length, total: request.mates.length + request.endgames.length });
-    }
-    for (var j = 0; j < request.endgames.length; j++) {
-        results.push(playEndgame(request.endgames[j], request.depth));
-        postMessage({ progress: results.length, total: request.mates.length + request.endgames.length });
-    }
+    try {
+        prepareEngine(request.depth);
 
-    postMessage({ done: true, results: results, version: KHIANAT_VERSION });
+        var results = [];
+        for (var i = 0; i < request.mates.length; i++) {
+            results.push(solveMate(request.mates[i], request.depth));
+            postMessage({ progress: results.length, total: total });
+        }
+        for (var j = 0; j < request.endgames.length; j++) {
+            results.push(playEndgame(request.endgames[j], request.depth));
+            postMessage({ progress: results.length, total: total });
+        }
+
+        // older engine versions do not carry a version number yet
+        var version = (typeof KHIANAT_VERSION !== 'undefined') ? KHIANAT_VERSION : 'unknown';
+
+        postMessage({ done: true, results: results, version: version });
+    } catch (error) {
+        postMessage({ error: error && error.message ? error.message : String(error) });
+    }
 };

@@ -310,24 +310,35 @@ function isRepetition () {
 
 /*
  * Position keys of the game played so far, so the engine also notices
- * repetitions of positions from before it started thinking. Captures and
- * pawn moves are irreversible: everything before them can never come back,
- * so the list is cleared there and stays short.
+ * repetitions of positions from before it started thinking.
+ *
+ * The positions are collected by walking backwards through the game and
+ * then restoring it. Replaying from the standard starting position would
+ * be wrong for games that began from a set up position, which is exactly
+ * what the benchmark suites do.
+ *
+ * Captures and pawn moves are irreversible, so everything before them can
+ * never come back and the walk stops there. The list stays short.
  */
 function buildRepetitionHistory (game) {
     var keys = [];
-    var replay = new Chess();
-    var history = game.history({ verbose: true });
+    var undone = [];
 
-    keys.push(positionKey(replay));
-    for (var i = 0; i < history.length; i++) {
-        replay.move(history[i].san);
-        if (history[i].captured || history[i].piece === 'p') {
-            keys.length = 0;
-        }
-        keys.push(positionKey(replay));
+    while (true) {
+        keys.push(positionKey(game));
+
+        var move = game.undo();
+        if (!move) break;                                   // start of the game
+        undone.push(move);
+        if (move.captured || move.piece === 'p') break;     // irreversible
     }
-    return keys;
+
+    // put the game back exactly as it was
+    for (var i = undone.length - 1; i >= 0; i--) {
+        game.move(undone[i]);
+    }
+
+    return keys.reverse();
 }
 
 // ---------------------------------------------------------------------------
