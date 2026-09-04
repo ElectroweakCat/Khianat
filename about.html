@@ -44,25 +44,18 @@
       <main id="main">
 
         <section class="card doc">
-          <h2>What is Khianat?</h2>
-          <p>Khianat is my self-made chess engine. It runs completely in your browser: there is no engine server, no cloud, nothing phones home when you play. Everything you see on the Play page is plain HTML, CSS and JavaScript.</p>
-          <p>This page explains how the engine actually works, in the same order in which Khianat itself thinks about a move. All descriptions match the code that is really running on this site.</p>
-        </section>
-
-        <section class="card doc">
-          <h2>Why "Khianat"?</h2>
-          <p>When I started this project I happened to be learning Indonesian, and I was looking for a name that you would not find on any other chess site. That is how I stumbled over the word <em>khianat</em>: it means betrayal, treachery. It is one of the many Arabic loanwords in Indonesian, going back to Arabic <em>&#1582;&#1616;&#1610;&#1614;&#1575;&#1606;&#1614;&#1577;</em> (<em>khiy&#257;na</em>), which travelled through Classical Malay into modern Indonesian and, along other routes, into Persian, Turkish, Hindi and several more languages.</p>
-          <p>I liked the sound of it, and the meaning fits a chess engine that is supposed to win with tactics, traps and moves you did not see coming. The logo tells the same story: a humble pawn casting the shadow of a queen. It looks harmless. It is not.</p>
+          <h2>Khianat</h2>
+          <p>My self-made chess engine. It runs entirely in your browser: no engine server, no cloud, nothing phones home. This page explains how it works, in the order the engine itself thinks, and matches the code actually running here.</p>
+          <p><strong>The name.</strong> I was learning Indonesian when I started, and wanted something no other chess site would have. <em>Khianat</em> means betrayal &mdash; an Arabic loanword (<em>&#1582;&#1616;&#1610;&#1614;&#1575;&#1606;&#1614;&#1577;</em>, <em>khiy&#257;na</em>) that reached Indonesian through Malay. It fits an engine meant to win with tactics, traps and moves you did not see coming. The logo says the same: a pawn casting the shadow of a queen. It looks harmless. It is not.</p>
         </section>
 
         <section class="card doc">
           <h2>Architecture</h2>
-          <p>The project is split into small parts, each with one job:</p>
-          <p><strong>chess.js</strong> (by Jeff Hlywa) implements the rules of chess: it knows which moves are legal in a position, detects check, checkmate, stalemate and draws, and can play moves forward and take them back. Khianat never invents moves itself, it only chooses among the legal moves this library generates. Illegal moves are impossible by construction.</p>
-          <p><strong>chessboard.js</strong> (by Chris Oakman) draws the board and handles the dragging of pieces. It is pure presentation and knows nothing about the rules.</p>
-          <p><strong>evaluation.js</strong> is my evaluation function: it looks at a position and answers "who is better, and by how much?" with a single number.</p>
-          <p><strong>engine.js</strong> is the brain: the opening book and the search algorithm that decides which move to play.</p>
-          <p>One full engine move looks like this:</p>
+          <p>Four parts, each with one job:</p>
+          <p><strong>chess.js</strong> (Jeff Hlywa) knows the rules and generates the legal moves. Khianat only ever picks from that list, so illegal moves are impossible by construction.<br>
+          <strong>chessboard.js</strong> (Chris Oakman) draws the board and handles dragging. Pure presentation.<br>
+          <strong>evaluation.js</strong> answers one question about a position: who is better, and by how much?<br>
+          <strong>engine.js</strong> is the brain &mdash; opening book and search.</p>
           <figure>
             <div class="flow">
               <div class="flow-step">Player plays a move (White)</div>
@@ -81,9 +74,9 @@
 
         <section class="card doc">
           <h2>The evaluation function</h2>
-          <p>At the bottom of every calculation sits a simple question: is this position good or bad? Khianat answers it in centipawns (100 = one pawn) from White's point of view, using two ingredients:</p>
-          <p><strong>Material.</strong> Every piece type has a fixed value: a knight is worth roughly three pawns, a queen roughly nine. The exact numbers are adapted from the Sunfish engine.</p>
-          <p><strong>Piece square tables.</strong> The same piece is worth more on a good square than on a bad one. For every piece type there is an 8&times;8 table of bonuses and penalties. A knight in the center gets a bonus, a knight in the corner a hefty penalty. Black uses the same tables, mirrored vertically.</p>
+          <p>Is this position good or bad? Khianat answers in centipawns (100 = one pawn), from White's point of view, using two ingredients.</p>
+          <p><strong>Material.</strong> A knight is worth roughly three pawns, a queen roughly nine. The exact numbers are adapted from the Sunfish engine.</p>
+          <p><strong>Piece square tables.</strong> The same piece is worth more on a good square. Every piece type has an 8&times;8 table of bonuses and penalties &mdash; a knight in the centre gets a bonus, one in the corner a hefty penalty. Black uses the same tables, mirrored.</p>
           <figure>
             <div class="heatmap">
               <div class="h-n3">-66</div><div class="h-n3">-53</div><div class="h-n3">-75</div><div class="h-n3">-75</div><div class="h-n1">-10</div><div class="h-n3">-55</div><div class="h-n3">-58</div><div class="h-n3">-70</div>
@@ -97,13 +90,13 @@
             </div>
             <figcaption>The knight table from White's point of view (rank 8 at the top). Light squares are good, dark squares are bad: knights belong in the center, not on the rim.</figcaption>
           </figure>
-          <p>The evaluation walks over all 64 squares and adds everything up: White's material and square bonuses count positive, Black's count negative. Deliberately missing (so far): pawn structure, king safety and mobility.</p>
+          <p>All 64 squares are added up, White positive, Black negative. Deliberately missing so far: pawn structure, king safety and mobility.</p>
         </section>
 
         <section class="card doc">
           <h2>The search: Minimax</h2>
-          <p>A good evaluation of the current position is not enough, because chess is about what happens next. So Khianat builds a tree: my possible moves, all your answers to each of them, all my answers to those, and so on. At the leaves of the tree the evaluation function is called.</p>
-          <p>The values then flow back up by the Minimax rule: on my turns I pick the maximum (best for me), on your turns I assume you pick the minimum (worst for me). Khianat plays the move whose subtree survives this pessimistic calculation best. In the code this is written in the negamax form, which is the same algorithm with the sign flipped at every level, so one function handles both colors.</p>
+          <p>Judging the current position is not enough, because chess is about what happens next. So Khianat builds a tree: its moves, your answers, its answers to those. The evaluation runs at the leaves.</p>
+          <p>The values flow back up by the Minimax rule: on its own turns it takes the maximum, on yours it assumes you take the minimum. The move whose subtree survives that pessimism best gets played. (In the code it is the negamax form: the same thing with the sign flipped each level, so one function serves both colours.)</p>
           <figure>
             <svg viewBox="0 0 700 310" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Minimax tree example">
               <g stroke="rgba(235,235,196,0.5)" stroke-width="1.5">
@@ -142,13 +135,13 @@
             </svg>
             <figcaption>A tiny two-ply tree. Move b looks tempting (+9), but the opponent would answer with the +2 line, so move a with a safe +3 is better.</figcaption>
           </figure>
-          <p><strong>Iterative deepening.</strong> Khianat does not search one fixed depth. It searches depth 1, then depth 2, then depth 3 and so on until its time budget is used up, and plays the best move of the last fully completed depth. This has two nice effects: the thinking time is predictable, and in simple positions (especially endgames) the search automatically reaches much deeper. If only one legal move exists, it is played instantly.</p>
+          <p><strong>Iterative deepening.</strong> Rather than one fixed depth, Khianat searches depth 1, then 2, then 3, until its time is up, and plays the best move of the last completed depth. The thinking time stays predictable, and in simple positions the search reaches much deeper by itself. With only one legal move, it plays instantly.</p>
           <p><strong>Difficulty levels.</strong> The difficulty levels on the Play page simply control this search: lower levels cap the search depth and thinking time, the highest level is the unrestricted engine. Same brain, shorter or longer leash.</p>
         </section>
 
         <section class="card doc">
           <h2>Alpha-beta pruning</h2>
-          <p>The move tree grows brutally fast: with roughly 35 legal moves per position, four half-moves already mean over a million leaves. Alpha-beta pruning cuts this down without changing the result. The idea: while searching, remember the best result each side can already force (called alpha and beta). As soon as a branch is proven to be worse than something we already have, the rest of that branch cannot influence the final decision and is skipped.</p>
+          <p>The tree grows brutally fast: at roughly 35 legal moves per position, four half-moves already mean over a million leaves. Alpha-beta pruning cuts that down without changing the result. While searching, it remembers the best each side can already force. Once a branch is proven worse than something already in hand, the rest of it cannot change the decision and is skipped.</p>
           <figure>
             <svg viewBox="0 0 700 310" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Alpha-beta pruning example">
               <g stroke="rgba(235,235,196,0.5)" stroke-width="1.5">
@@ -209,29 +202,30 @@
 
         <section class="card doc">
           <h2>Quiescence search</h2>
-          <p>A fixed search depth has a famous blind spot called the horizon effect: if the search stops right after "queen takes pawn", the position looks great, even when the queen gets captured on the very next move, just beyond the horizon.</p>
-          <p>Khianat avoids this with a quiescence search: at the leaves of the tree the search does not simply stop, it keeps playing captures and promotions (only those) until the position is quiet, and evaluates then. The side to move may also "stand pat", i.e. decline all captures, so quiet positions stay cheap. As a result Khianat does not fall for the classic "grab a pawn, lose the queen" trap.</p>
+          <p>A fixed depth has a famous blind spot, the horizon effect: stop right after "queen takes pawn" and the position looks wonderful, even though the queen falls on the very next move.</p>
+          <p>So the search does not simply stop at the leaves. It keeps playing captures and promotions until the position is quiet, then evaluates. The side to move may also decline everything, which keeps quiet positions cheap. That is why Khianat does not fall for "grab a pawn, lose the queen".</p>
         </section>
 
         <section class="card doc">
           <h2>Opening, middlegame, endgame</h2>
-          <p><strong>Opening.</strong> For the first one or two moves Khianat plays its personal, hand-written opening book: a small table of positions with weighted replies (Sicilian, Modern defense, occasionally even the Englund gambit). Every book move is checked against the legal moves before it is played. The book is deliberately small; it is the engine's personality, not a database.</p>
-          <p>Once the book runs out, Khianat keeps varying for a few more moves: it picks at random among the moves it rates as equally good, preferring the better ones. Anything that loses material is far outside that range and never chosen. Weaker levels improvise more than strong ones, which is what stops every game from following the same script.</p>
-          <p><strong>Middlegame.</strong> Here the search and the piece square tables do the work: pieces are pushed towards active squares, the king hides behind its pawns, captures are calculated to the end.</p>
-          <p><strong>Endgame.</strong> When little non-pawn material is left on the board, the king switches to a separate endgame table: instead of hiding in the corner it walks to the center, which is exactly what you should do in a real endgame. Checkmate is scored as a huge value minus the distance to mate, so Khianat prefers the fastest mate and, when losing, drags things out as long as possible. Stalemate and drawn positions (fifty-move rule, threefold repetition, insufficient material) count as 0, so the engine will not accidentally stalemate you in a winning position, and it will happily steer into a draw when it is lost.</p>
+          <p><strong>Opening.</strong> A personal, hand-written book of weighted replies &mdash; Sicilian, Modern defence, occasionally the Englund gambit. Every book move is checked for legality first. It is deliberately small: the engine's personality, not a database.</p>
+          <p>When the book runs out, Khianat keeps varying for a few moves by picking at random among the moves it rates as equally good, preferring the better ones. Anything that loses material is far outside that range. Weaker levels improvise more, which stops every game from following the same script.</p>
+          <p><strong>Middlegame.</strong> Search and piece square tables do the work: pieces towards active squares, king behind its pawns, captures calculated to the end.</p>
+          <p><strong>Endgame.</strong> With little material left, the king switches to a separate table and walks to the centre instead of hiding &mdash; exactly what you should do yourself. Mate is scored by distance, so Khianat goes for the quickest one and, when lost, drags things out. Stalemate and draws count as zero, so it will not stalemate you by accident, and it will happily steer into a draw when losing.</p>
         </section>
 
         <section class="card doc">
           <h2>Performance and stability</h2>
-          <p>The search runs in a Web Worker, a background thread, so the page stays responsive while Khianat thinks (if the browser does not allow a worker, the engine simply thinks in the foreground instead). Beyond that, the search has to be a bit careful:</p>
-          <p>Draws are another example of something that has to be cheap. Asking the chess library whether a position has occurred before means taking the entire game apart and putting it back together, which is fine once per move but ruinous inside a search that visits thousands of positions per second. The engine therefore keeps its own short list of positions and counts the moves since the last capture itself.</p>
-          <p>The clock is only checked every so often, because reading the system time is surprisingly expensive. When the time is up, the search does not abort with an exception; it sets a flag and unwinds level by level, so every trial move is guaranteed to be taken back (a lesson learned the hard way, see blog entry #8). As a second safety net the engine remembers the length of the real game history before thinking and restores it afterwards, so the game state can never be corrupted by the search.</p>
-          <p>With all of this, Khianat at full strength searches several half-moves deep in the middlegame and clearly deeper in the endgame.</p>
+          <p>The search runs in a Web Worker, so the page stays responsive while Khianat thinks. Everything inside that search has to be cheap.</p>
+          <p><strong>Draws.</strong> Asking the chess library whether a position has occurred before means taking the whole game apart and rebuilding it &mdash; fine once per move, ruinous thousands of times per second. The engine keeps its own short list of positions instead.</p>
+          <p><strong>The clock</strong> is only read every so often, because that is surprisingly expensive. When time runs out the search sets a flag and unwinds level by level rather than throwing, so every trial move is guaranteed to be taken back (a lesson learned the hard way, see blog entry #8). As a safety net the game history is restored afterwards, so the search can never corrupt the real game.</p>
         </section>
 
         <section class="card doc">
           <h2>Playing strength</h2>
-          <p>My honest estimate, and it really is only an estimate: around 1600 to 1800 Elo against human casual players at the highest difficulty. It comes from what the engine can do, not from games it has played, so treat it accordingly. The <a href="benchmark.html">benchmark page</a> explains what can actually be measured and shows those results. Khianat calculates short tactics reliably, does not hang pieces to simple threats and wins won positions cleanly. The lower difficulty levels scale this down to something a beginner can beat. Its known weaknesses: the evaluation knows nothing about pawn structure, king safety or mobility, there is no transposition table (the same position reached by different move orders is searched again), and quiet positional play beyond its search depth escapes it. Patient, solid play is the best recipe against it.</p>
+          <p>My estimate for the highest difficulty: <strong>around 1600 to 1800 Elo</strong> against casual players. It comes from what the engine can do, not from games it has played &mdash; the <a href="benchmark.html">benchmark page</a> shows what can actually be measured.</p>
+          <p><strong>Good at:</strong> short tactics, not hanging pieces, converting won positions. Lower levels scale that down to something a beginner can beat.</p>
+          <p><strong>Weak at:</strong> pawn structure, king safety and mobility are missing from the evaluation, there is no transposition table, and quiet positional play beyond its search depth escapes it. Patient, solid play is the best recipe against it.</p>
           <figure>
             <svg viewBox="0 0 700 310" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Elo history of Khianat">
               <g stroke="rgba(235,235,196,0.2)" stroke-width="1">
@@ -268,12 +262,12 @@
             </svg>
             <figcaption>Estimated strength of the engine generations so far. These are honest guesses, not measured ratings: Khianat has never played a rated game. Measured results live on the <a href="benchmark.html">benchmark page</a>.</figcaption>
           </figure>
-          <p><strong>What could come next?</strong> A transposition table, pawn structure and king safety in the evaluation, and check evasions in the quiescence search. Each of these is a realistic future blog entry.</p>
+          <p><strong>Next up:</strong> a transposition table, pawn structure and king safety in the evaluation, check evasions in the quiescence search. Each a realistic future blog entry.</p>
         </section>
 
         <section class="card doc">
           <h2>Credits</h2>
-          <p>The board rendering comes from chessboard.js by Chris Oakman (<a href="https://chessboardjs.com/index.html">chessboardjs.com</a>), the chess rules from chess.js by Jeff Hlywa (<a href="https://github.com/jhlywa/chess.js">github.com/jhlywa/chess.js</a>). The piece values and piece square tables are adapted from the Sunfish engine by Thomas Ahle (<a href="https://github.com/thomasahle/sunfish">github.com/thomasahle/sunfish</a>). Search, evaluation glue, opening book and everything else: my own work. The full source code is on <a href="https://github.com/ElectroweakCat/Khianat">GitHub</a>. This is hopefully not the last version of Khianat, there are many improvements yet to come. Feel free to check out the blog!</p>
+          <p>Board rendering by <a href="https://chessboardjs.com/index.html">chessboard.js</a> (Chris Oakman), chess rules by <a href="https://github.com/jhlywa/chess.js">chess.js</a> (Jeff Hlywa), piece values and square tables adapted from <a href="https://github.com/thomasahle/sunfish">Sunfish</a> (Thomas Ahle). Search, evaluation, opening book and the rest: my own work, <a href="https://github.com/ElectroweakCat/Khianat">source on GitHub</a>. Hopefully not the last version &mdash; the <a href="blog.html">blog</a> has the rest of the story.</p>
         </section>
 
       </main>

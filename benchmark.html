@@ -64,20 +64,19 @@
 
         <section class="card doc">
           <h2>How it is measured</h2>
-          <p>Everything runs offline at a fixed search depth. That matters: the difficulty levels are defined by thinking time, so a fast computer would look stronger than a phone. Depth is the same everywhere, and the opening randomisation is off while measuring, so a run can be repeated with the same result.</p>
-          <p><strong>Tactics.</strong> Puzzles from the Lichess database, which is public domain and comes with a rating for every puzzle. The rating at which Khianat solves half of them is the closest thing to a measured number this project has.</p>
-          <p><strong>Forced mates.</strong> Mate in two and mate in three. Pass or fail.</p>
-          <p><strong>Endgame technique.</strong> Can it actually finish? Queen against a bare king, rook, two rooks, escorting a pawn home. Against a random defence, with a move limit, each position once as White and once as Black.</p>
-          <p><strong>Move quality.</strong> Khianat plays itself and Stockfish judges every move: how many centipawns did it give away? The same measure used to analyse human games.</p>
-          <p><strong>Match play.</strong> Games against a rating limited Stockfish, colours alternating.</p>
+          <p>All tests run offline at a <strong>fixed search depth</strong>. That matters: the difficulty levels are defined by thinking time, so a fast computer would look stronger than a phone. Depth is the same everywhere and the opening randomisation is off, so a run can be repeated with the same result.</p>
+          <p><strong>Tactics.</strong> Puzzles from the Lichess database, public domain and rated. The rating at which Khianat solves half of them is the closest thing to a measured number this project has.<br>
+          <strong>Forced mates.</strong> Mate in two and three. Pass or fail.<br>
+          <strong>Endgame technique.</strong> Queen, rook, two rooks, pawn escort &mdash; against a random defence, with a move limit, once as White and once as Black.<br>
+          <strong>Move quality.</strong> Khianat plays itself, Stockfish judges every move: how many centipawns did it give away?<br>
+          <strong>Match play.</strong> Games against a rating limited Stockfish, colours alternating.</p>
           <p>Stockfish runs offline only. It is GPL licensed and no part of this website, so nothing here makes the site bigger or slower.</p>
         </section>
 
         <section class="card doc">
           <h2>What the numbers do not say</h2>
           <p>Solving puzzles is not the same as playing well. A puzzle announces that something is there to be found; a real game does not. Khianat could be sharp tactically and still drift in quiet positions.</p>
-          <p>Stockfish's rating limiter runs on its own scale, not a human one, and even a forty game match leaves an uncertainty of well over a hundred points. That is why every Elo figure here comes with its confidence interval.</p>
-          <p>The solve rates and match scores are measured. Every Elo number derived from them is an orientation. Khianat has never played a rated game against a human.</p>
+          <p>Stockfish's rating limiter runs on its own scale, not a human one, and even a forty game match leaves an uncertainty of well over a hundred points &mdash; which is why every Elo figure here carries its confidence interval. The solve rates and match scores are measured; everything derived from them is an orientation. Khianat has never played a rated game against a human.</p>
         </section>
 
       </main>
