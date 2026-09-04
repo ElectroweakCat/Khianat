@@ -1,4 +1,90 @@
 {
  "schemaVersion": 1,
- "runs": []
+ "runs": [
+  {
+   "key": "1.3.0@depth3",
+   "engineVersion": "1.3.0",
+   "searchDepth": 3,
+   "date": "2026-09-04",
+   "machine": "Windows_NT x64, AMD Ryzen 5 7535U with Radeon Graphics         , Node 24.20.0",
+   "tests": {
+    "endgames": {
+     "depth": 3,
+     "positions": [
+      {
+       "id": "kq-vs-k-white",
+       "description": "Queen and king against a bare king (White)",
+       "solved": true,
+       "moves": 11,
+       "maxMoves": 25
+      },
+      {
+       "id": "kq-vs-k-black",
+       "description": "Queen and king against a bare king (Black)",
+       "solved": true,
+       "moves": 8,
+       "maxMoves": 25
+      },
+      {
+       "id": "kr-vs-k-white",
+       "description": "Rook and king against a bare king (White)",
+       "solved": true,
+       "moves": 20,
+       "maxMoves": 35
+      },
+      {
+       "id": "kr-vs-k-black",
+       "description": "Rook and king against a bare king (Black)",
+       "solved": true,
+       "moves": 9,
+       "maxMoves": 35
+      },
+      {
+       "id": "krr-vs-k-white",
+       "description": "Two rooks, the easiest mate there is (White)",
+       "solved": true,
+       "moves": 7,
+       "maxMoves": 15
+      },
+      {
+       "id": "krr-vs-k-black",
+       "description": "Two rooks, the easiest mate there is (Black)",
+       "solved": true,
+       "moves": 9,
+       "maxMoves": 15
+      },
+      {
+       "id": "kp-promotion-white",
+       "description": "Escort a pawn home while the enemy king is far away (White)",
+       "solved": true,
+       "moves": 12,
+       "maxMoves": 40
+      },
+      {
+       "id": "kp-promotion-black",
+       "description": "Escort a pawn home while the enemy king is far away (Black)",
+       "solved": true,
+       "moves": 11,
+       "maxMoves": 40
+      },
+      {
+       "id": "kbn-vs-k-white",
+       "description": "Bishop and knight mate, known to be beyond engines of this size (White)",
+       "solved": false,
+       "moves": null,
+       "maxMoves": 60
+      },
+      {
+       "id": "kbn-vs-k-black",
+       "description": "Bishop and knight mate, known to be beyond engines of this size (Black)",
+       "solved": false,
+       "moves": null,
+       "maxMoves": 60
+      }
+     ],
+     "method": "Khianat plays the strong side against a random legal defence and has to deliver mate within the given number of moves. Every position appears twice, once with White and once with Black to move, so the test does not favour one colour. A random defender is weak on purpose: an engine with working technique mates it easily, an engine without one shuffles until the limit."
+    }
+   }
+  }
+ ]
 }
