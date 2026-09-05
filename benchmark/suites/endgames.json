@@ -55,13 +55,13 @@
       "id": "kbn-vs-k-white",
       "fen": "8/8/8/4k3/8/8/8/2B1KN2 w - - 0 1",
       "maxMoves": 60,
-      "description": "Bishop and knight mate, known to be beyond engines of this size (White)"
+      "description": "Bishop and knight mate, the hardest of the basic mates (White)"
     },
     {
       "id": "kbn-vs-k-black",
       "fen": "2b1kn2/8/8/4K3/8/8/8/8 b - - 0 1",
       "maxMoves": 60,
-      "description": "Bishop and knight mate, known to be beyond engines of this size (Black)"
+      "description": "Bishop and knight mate, the hardest of the basic mates (Black)"
     }
   ]
 }
