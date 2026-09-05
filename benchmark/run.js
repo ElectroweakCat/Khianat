@@ -41,6 +41,48 @@ function parseArgs (argv) {
     return args;
 }
 
+/*
+ * A one line progress display with a rough estimate of the time left.
+ * Long runs otherwise sit silently for hours, which makes it impossible
+ * to tell a slow test from a stuck one.
+ */
+function formatTime (seconds) {
+    if (seconds < 90) return Math.round(seconds) + 's';
+    const minutes = seconds / 60;
+    if (minutes < 90) return Math.round(minutes) + 'm';
+    return (minutes / 60).toFixed(1) + 'h';
+}
+
+function makeProgress (total) {
+    const start = Date.now();
+    let done = 0;
+    let current = '';
+
+    function draw () {
+        const elapsed = (Date.now() - start) / 1000;
+        const left = done > 0 ? (elapsed / done) * (total - done) : null;
+
+        process.stdout.write(
+            '\r  ' + done + '/' + total +
+            (current ? '  ' + current : '') +
+            '  ' + formatTime(elapsed) + ' elapsed' +
+            (left !== null ? ', about ' + formatTime(left) + ' left' : '') +
+            '        '
+        );
+    }
+
+    function clear () {
+        process.stdout.write('\r' + ' '.repeat(78) + '\r');
+    }
+
+    return {
+        working (label) { current = label; draw(); },
+        tick () { done++; draw(); },
+        log (line) { clear(); console.log(line); draw(); },
+        done () { clear(); }
+    };
+}
+
 function readSuite (name) {
     const file = path.join(SUITES, name);
     if (!fs.existsSync(file)) {
@@ -105,16 +147,25 @@ function runPuzzles (engine, depth) {
     let solvedTotal = 0;
     let total = 0;
 
+    const progress = makeProgress(
+        suite.bands.reduce((sum, band) => sum + band.puzzles.length, 0)
+    );
+
     for (const band of suite.bands) {
         let solved = 0;
+        progress.working(`rated ${band.from}-${band.to}`);
+
         for (const puzzle of band.puzzles) {
             if (solvePuzzle(engine, puzzle)) solved++;
+            progress.tick();
         }
+
         bands.push({ from: band.from, to: band.to, solved, total: band.puzzles.length });
         solvedTotal += solved;
         total += band.puzzles.length;
-        console.log(`  ${band.from}-${band.to}: ${solved}/${band.puzzles.length}`);
+        progress.log(`  ${band.from}-${band.to}: ${solved}/${band.puzzles.length}`);
     }
+    progress.done();
 
     return {
         depth,
@@ -130,14 +181,23 @@ function runMates (engine, depth) {
     const suite = readSuite('mates.json');
     const groups = [];
 
+    const progress = makeProgress(
+        suite.groups.reduce((sum, group) => sum + group.puzzles.length, 0)
+    );
+
     for (const group of suite.groups) {
         let solved = 0;
+        progress.working(group.id);
+
         for (const puzzle of group.puzzles) {
             if (solvePuzzle(engine, puzzle)) solved++;
+            progress.tick();
         }
+
         groups.push({ id: group.id, solved, total: group.puzzles.length });
-        console.log(`  ${group.id}: ${solved}/${group.puzzles.length}`);
+        progress.log(`  ${group.id}: ${solved}/${group.puzzles.length}`);
     }
+    progress.done();
 
     return { depth, groups, source: suite.source };
 }
@@ -149,8 +209,10 @@ function runMates (engine, depth) {
 function runEndgames (engine, depth) {
     const suite = readSuite('endgames.json');
     const positions = [];
+    const progress = makeProgress(suite.positions.length);
 
     for (const test of suite.positions) {
+        progress.working(test.id);
         const game = new engine.Chess(test.fen);
         const strongSide = game.turn();
         let moves = 0;
@@ -173,8 +235,10 @@ function runEndgames (engine, depth) {
             moves: mated ? moves : null,
             maxMoves: test.maxMoves
         });
-        console.log(`  ${test.id}: ${mated ? 'mate in ' + moves : 'not solved'}`);
+        progress.tick();
+        progress.log(`  ${test.id}: ${mated ? 'mate in ' + moves : 'not solved'}`);
     }
+    progress.done();
 
     return { depth, positions, method: suite.method };
 }
