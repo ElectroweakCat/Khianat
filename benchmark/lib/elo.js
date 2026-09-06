@@ -28,25 +28,65 @@ function eloConfidence (score, games) {
 }
 
 /*
- * Where does the solve rate cross 50%? Bands are
- * [{ from, to, solved, total }] in ascending order. Returns null when the
- * data never crosses, which is an honest answer for a small sample.
+ * Fits a puzzle rating to the solve rates.
+ *
+ * The model is the Elo formula itself: someone rated R is expected to solve a
+ * puzzle rated P with probability 1 / (1 + 10^((P - R) / 400)). The rating
+ * that makes the observed results most likely is the answer.
+ *
+ * This beats simply looking for the band where the solve rate crosses 50%,
+ * because it uses every band instead of two, and still works when the
+ * crossing point lies outside the range that was measured.
+ *
+ * Bands are [{ from, to, solved, total }]. Their midpoints stand in for the
+ * individual puzzle ratings, which is a small source of error.
  */
-function crossingRating (bands) {
-    const points = bands
+function fitPuzzleRating (bands) {
+    const points = (bands || [])
         .filter(band => band.total > 0)
-        .map(band => ({ rating: (band.from + band.to) / 2, rate: band.solved / band.total }));
+        .map(band => ({
+            rating: (band.from + band.to) / 2,
+            solved: band.solved,
+            total: band.total
+        }));
 
-    for (let i = 0; i < points.length - 1; i++) {
-        const a = points[i];
-        const b = points[i + 1];
-        if (a.rate >= 0.5 && b.rate < 0.5) {
-            const span = a.rate - b.rate;
-            const share = span === 0 ? 0.5 : (a.rate - 0.5) / span;
-            return Math.round(a.rating + share * (b.rating - a.rating));
+    if (points.length === 0) return null;
+
+    function logLikelihood (rating) {
+        let sum = 0;
+        for (const point of points) {
+            const expected = 1 / (1 + Math.pow(10, (point.rating - rating) / 400));
+            sum += point.solved * Math.log(Math.max(expected, 1e-12)) +
+                   (point.total - point.solved) * Math.log(Math.max(1 - expected, 1e-12));
         }
+        return sum;
     }
-    return null;
+
+    const MIN = 0;
+    const MAX = 3500;
+    const STEP = 5;
+
+    let best = MIN;
+    let bestValue = -Infinity;
+    for (let rating = MIN; rating <= MAX; rating += STEP) {
+        const value = logLikelihood(rating);
+        if (value > bestValue) { bestValue = value; best = rating; }
+    }
+
+    // 95% interval: every rating within 1.92 log-likelihood units of the peak
+    const threshold = bestValue - 1.92;
+    let low = best;
+    let high = best;
+    while (low - STEP >= MIN && logLikelihood(low - STEP) >= threshold) low -= STEP;
+    while (high + STEP <= MAX && logLikelihood(high + STEP) >= threshold) high += STEP;
+
+    return {
+        rating: best,
+        low,
+        high,
+        // false when the data does not pin the rating down from both sides
+        bounded: low > MIN && high < MAX
+    };
 }
 
-module.exports = { eloDifference, eloConfidence, crossingRating };
+module.exports = { eloDifference, eloConfidence, fitPuzzleRating };

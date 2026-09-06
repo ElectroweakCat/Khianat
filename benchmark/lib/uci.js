@@ -6,13 +6,28 @@
  * communicates over standard input and output.
  */
 
+const fs = require('fs');
 const { spawn } = require('child_process');
 
 class Uci {
     constructor (enginePath) {
+        if (!enginePath || !fs.existsSync(enginePath)) {
+            throw new Error(
+                `Stockfish not found at "${enginePath}".\n` +
+                '  Pass the full path to the executable, for example:\n' +
+                '    --stockfish "C:\\Users\\you\\Downloads\\stockfish\\stockfish-windows-x86-64-avx2.exe"\n' +
+                '  In Windows Explorer, shift + right click the file and choose "Copy as path".'
+            );
+        }
+
         this.process = spawn(enginePath);
         this.buffer = '';
         this.listeners = [];
+
+        this.process.on('error', error => {
+            console.error(`\nStockfish could not be started: ${error.message}`);
+            process.exit(1);
+        });
 
         this.process.stdout.on('data', chunk => {
             this.buffer += chunk.toString();
