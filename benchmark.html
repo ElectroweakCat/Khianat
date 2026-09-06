@@ -65,7 +65,7 @@
         <section class="card doc">
           <h2>How it is measured</h2>
           <p>All tests run offline at a <strong>fixed search depth</strong>. That matters: the difficulty levels are defined by thinking time, so a fast computer would look stronger than a phone. Depth is the same everywhere and the opening randomisation is off, so a run can be repeated with the same result.</p>
-          <p><strong>Tactics.</strong> Puzzles from the Lichess database, public domain and rated. The rating at which Khianat solves half of them is the closest thing to a measured number this project has.<br>
+          <p><strong>Tactics.</strong> Puzzles from the Lichess database, public domain and rated. The solve rates across the rating bands are fitted with the Elo formula, which gives a puzzle rating with a confidence range &mdash; the closest thing to a measured number this project has.<br>
           <strong>Forced mates.</strong> Mate in two and three. Pass or fail.<br>
           <strong>Endgame technique.</strong> Queen, rook, two rooks, pawn escort &mdash; against a random defence, with a move limit, once as White and once as Black.<br>
           <strong>Move quality.</strong> Khianat plays itself, Stockfish judges every move: how many centipawns did it give away?<br>
@@ -99,6 +99,51 @@
                  '</div>'
         }
 
+        /*
+         * Fits a rating to the solve rates using the Elo formula itself:
+         * a solver rated R beats a puzzle rated P with probability
+         * 1 / (1 + 10^((P - R) / 400)). The rating that makes the measured
+         * results most likely is the answer. Computed here rather than read
+         * from the file, so older result files get a rating too.
+         */
+        function fitPuzzleRating (bands) {
+          var points = []
+          for (var i = 0; i < bands.length; i++) {
+            if (bands[i].total > 0) {
+              points.push({
+                rating: (bands[i].from + bands[i].to) / 2,
+                solved: bands[i].solved,
+                total: bands[i].total
+              })
+            }
+          }
+          if (points.length === 0) return null
+
+          function logLikelihood (rating) {
+            var sum = 0
+            for (var j = 0; j < points.length; j++) {
+              var expected = 1 / (1 + Math.pow(10, (points[j].rating - rating) / 400))
+              sum += points[j].solved * Math.log(Math.max(expected, 1e-12)) +
+                     (points[j].total - points[j].solved) * Math.log(Math.max(1 - expected, 1e-12))
+            }
+            return sum
+          }
+
+          var STEP = 5, MAX = 3500
+          var best = 0, bestValue = -Infinity
+          for (var r = 0; r <= MAX; r += STEP) {
+            var value = logLikelihood(r)
+            if (value > bestValue) { bestValue = value; best = r }
+          }
+
+          var threshold = bestValue - 1.92 // 95% likelihood interval
+          var low = best, high = best
+          while (low - STEP >= 0 && logLikelihood(low - STEP) >= threshold) low -= STEP
+          while (high + STEP <= MAX && logLikelihood(high + STEP) >= threshold) high += STEP
+
+          return { rating: best, low: low, high: high, bounded: low > 0 && high < MAX }
+        }
+
         function renderTactics (tactics) {
           var html = '<h3>Tactics</h3>'
           for (var i = 0; i < tactics.bands.length; i++) {
@@ -108,11 +153,23 @@
                         band.solved, band.total,
                         band.solved + ' of ' + band.total + ' solved (' + rate + '%)')
           }
-          html += '<p class="result-legend">' +
-                  (tactics.ratingEstimate
-                    ? 'Solves half the puzzles at about <strong>' + tactics.ratingEstimate + '</strong> puzzle rating.'
-                    : 'The solve rate never crosses 50% in this sample, so no crossing point can be given.') +
-                  '</p>'
+
+          var fit = fitPuzzleRating(tactics.bands)
+          if (fit && fit.bounded) {
+            html += '<div class="big-stats"><div class="big-stat">' +
+                      '<div class="stat-number">' + fit.rating + '</div>' +
+                      '<div class="stat-label">puzzle rating, 95% range ' +
+                        fit.low + ' to ' + fit.high + '</div>' +
+                    '</div></div>'
+          } else if (fit) {
+            html += '<p class="result-legend">The solve rates are too one sided to pin a ' +
+                    'rating down; harder puzzles are needed.</p>'
+          }
+
+          html += '<p class="result-legend">Fitted from all ' + tactics.total +
+                  ' puzzles with the Elo formula. A puzzle rating is not a playing ' +
+                  'strength: these are forced tactics, which is what a search engine ' +
+                  'is best at.</p>'
           return html
         }
 
@@ -195,8 +252,9 @@
           for (var i = 0; i < runs.length; i++) {
             var run = runs[i]
             var bits = []
-            if (run.tests.puzzles && run.tests.puzzles.ratingEstimate) {
-              bits.push('tactics ' + run.tests.puzzles.ratingEstimate)
+            if (run.tests.puzzles) {
+              var runFit = fitPuzzleRating(run.tests.puzzles.bands)
+              if (runFit && runFit.bounded) bits.push('tactics ' + runFit.rating)
             }
             if (run.tests.acpl && run.tests.acpl.averageCentipawnLoss !== null) {
               bits.push(run.tests.acpl.averageCentipawnLoss + ' cp loss')

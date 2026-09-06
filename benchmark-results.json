@@ -69,14 +69,14 @@
       },
       {
        "id": "kbn-vs-k-white",
-       "description": "Bishop and knight mate, known to be beyond engines of this size (White)",
+       "description": "Bishop and knight mate, the hardest of the basic mates (White)",
        "solved": false,
        "moves": null,
        "maxMoves": 60
       },
       {
        "id": "kbn-vs-k-black",
-       "description": "Bishop and knight mate, known to be beyond engines of this size (Black)",
+       "description": "Bishop and knight mate, the hardest of the basic mates (Black)",
        "solved": false,
        "moves": null,
        "maxMoves": 60
@@ -90,7 +90,7 @@
    "key": "1.3.0@depth5",
    "engineVersion": "1.3.0",
    "searchDepth": 5,
-   "date": "2026-09-04",
+   "date": "2026-09-06",
    "machine": "Windows_NT x64, AMD Ryzen 5 7535U with Radeon Graphics         , Node 24.20.0",
    "tests": {
     "endgames": {
@@ -154,20 +154,81 @@
       },
       {
        "id": "kbn-vs-k-white",
-       "description": "Bishop and knight mate, known to be beyond engines of this size (White)",
+       "description": "Bishop and knight mate, the hardest of the basic mates (White)",
        "solved": true,
        "moves": 32,
        "maxMoves": 60
       },
       {
        "id": "kbn-vs-k-black",
-       "description": "Bishop and knight mate, known to be beyond engines of this size (Black)",
+       "description": "Bishop and knight mate, the hardest of the basic mates (Black)",
        "solved": false,
        "moves": null,
        "maxMoves": 60
       }
      ],
      "method": "Khianat plays the strong side against a random legal defence and has to deliver mate within the given number of moves. Every position appears twice, once with White and once with Black to move, so the test does not favour one colour. A random defender is weak on purpose: an engine with working technique mates it easily, an engine without one shuffles until the limit."
+    },
+    "mates": {
+     "depth": 5,
+     "groups": [
+      {
+       "id": "mateIn2",
+       "solved": 40,
+       "total": 40
+      },
+      {
+       "id": "mateIn3",
+       "solved": 40,
+       "total": 40
+      }
+     ],
+     "source": "Lichess puzzle database, CC0 (public domain). Not redistributed here."
+    },
+    "puzzles": {
+     "depth": 5,
+     "total": 300,
+     "solved": 242,
+     "bands": [
+      {
+       "from": 600,
+       "to": 899,
+       "solved": 48,
+       "total": 50
+      },
+      {
+       "from": 900,
+       "to": 1199,
+       "solved": 49,
+       "total": 50
+      },
+      {
+       "from": 1200,
+       "to": 1499,
+       "solved": 46,
+       "total": 50
+      },
+      {
+       "from": 1500,
+       "to": 1799,
+       "solved": 38,
+       "total": 50
+      },
+      {
+       "from": 1800,
+       "to": 2099,
+       "solved": 35,
+       "total": 50
+      },
+      {
+       "from": 2100,
+       "to": 2399,
+       "solved": 26,
+       "total": 50
+      }
+     ],
+     "ratingEstimate": null,
+     "source": "Lichess puzzle database, CC0 (public domain). Not redistributed here."
     }
    }
   }
