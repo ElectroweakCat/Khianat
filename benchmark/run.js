@@ -1,9 +1,9 @@
 /*
  * Khianat benchmark runner.
  *
- *   node run.js puzzles   [--depth 3]
- *   node run.js mates     [--depth 3]
- *   node run.js endgames  [--depth 3]
+ *   node run.js puzzles   [--depth 3] [--workers 6]
+ *   node run.js mates     [--depth 3] [--workers 6]
+ *   node run.js endgames  [--depth 3] [--workers 6]
  *   node run.js acpl      --stockfish <path> [--depth 3] [--games 6] [--sf-depth 16]
  *   node run.js match     --stockfish <path> [--depth 3] [--games 40] [--elo 1500]
  *   node run.js all       [--stockfish <path>]
@@ -17,7 +17,9 @@ const os = require('os');
 const path = require('path');
 
 const { loadEngine, useFixedDepth, ROOT } = require('./lib/load-engine');
-const { eloDifference, eloConfidence, crossingRating } = require('./lib/elo');
+const { eloDifference, eloConfidence, fitPuzzleRating } = require('./lib/elo');
+const { runTasks, defaultWorkerCount } = require('./lib/pool');
+const { moveFromUci } = require('./lib/tests');
 
 const RESULTS_FILE = path.join(ROOT, 'benchmark-results.json');
 const SUITES = path.join(__dirname, 'suites');
@@ -93,111 +95,92 @@ function readSuite (name) {
     return JSON.parse(fs.readFileSync(file, 'utf8'));
 }
 
-function uciOf (move) {
-    return move.from + move.to + (move.promotion || '');
-}
-
-function moveFromUci (uci) {
-    return {
-        from: uci.slice(0, 2),
-        to: uci.slice(2, 4),
-        promotion: uci.length > 4 ? uci[4] : undefined
-    };
-}
-
-function randomMove (game) {
-    const moves = game.moves({ verbose: true });
-    return moves[Math.floor(Math.random() * moves.length)];
-}
-
 // ---------------------------------------------------------------------------
 // tactics: Lichess puzzles
 // ---------------------------------------------------------------------------
 
-/*
- * A puzzle counts as solved when the engine finds the whole expected line.
- * As on Lichess, a different move is accepted if it mates immediately.
- */
-function solvePuzzle (engine, puzzle) {
-    const game = new engine.Chess(puzzle.fen);
-    game.move(moveFromUci(puzzle.moves[0])); // the move that sets up the puzzle
-
-    for (let i = 1; i < puzzle.moves.length; i += 2) {
-        const chosen = engine.getBestMove(game);
-        if (!chosen) return false;
-
-        if (uciOf(chosen) !== puzzle.moves[i]) {
-            game.move(chosen);
-            const mated = game.in_checkmate();
-            game.undo();
-            if (!mated) return false;
-            return true;
-        }
-
-        game.move(chosen);
-        const reply = puzzle.moves[i + 1];
-        if (reply) game.move(moveFromUci(reply));
-    }
-    return true;
-}
-
-function runPuzzles (engine, depth) {
+async function runPuzzles (depth, workers) {
     const suite = readSuite('puzzles.json');
-    const bands = [];
-    let solvedTotal = 0;
-    let total = 0;
 
-    const progress = makeProgress(
-        suite.bands.reduce((sum, band) => sum + band.puzzles.length, 0)
-    );
+    // one flat list of tasks, tagged with the band they belong to
+    const tasks = [];
+    suite.bands.forEach((band, bandIndex) => {
+        band.puzzles.forEach(puzzle => {
+            tasks.push({ kind: 'puzzle', puzzle, bandIndex, label: `rated ${band.from}-${band.to}` });
+        });
+    });
 
-    for (const band of suite.bands) {
-        let solved = 0;
-        progress.working(`rated ${band.from}-${band.to}`);
-
-        for (const puzzle of band.puzzles) {
-            if (solvePuzzle(engine, puzzle)) solved++;
+    const progress = makeProgress(tasks.length);
+    const solvedFlags = await runTasks(tasks, {
+        depth,
+        workers,
+        onProgress (done, total, task) {
+            progress.working(task.label);
             progress.tick();
         }
-
-        bands.push({ from: band.from, to: band.to, solved, total: band.puzzles.length });
-        solvedTotal += solved;
-        total += band.puzzles.length;
-        progress.log(`  ${band.from}-${band.to}: ${solved}/${band.puzzles.length}`);
-    }
+    });
     progress.done();
+
+    const bands = suite.bands.map(band => ({
+        from: band.from, to: band.to, solved: 0, total: band.puzzles.length
+    }));
+    let solvedTotal = 0;
+
+    solvedFlags.forEach((solved, index) => {
+        if (!solved) return;
+        bands[tasks[index].bandIndex].solved++;
+        solvedTotal++;
+    });
+
+    bands.forEach(band => console.log(`  ${band.from}-${band.to}: ${band.solved}/${band.total}`));
+
+    const fit = fitPuzzleRating(bands);
+    if (fit) {
+        console.log(`  fitted puzzle rating: ${fit.rating} (95% range ${fit.low} to ${fit.high})`);
+    }
 
     return {
         depth,
-        total,
+        total: tasks.length,
         solved: solvedTotal,
         bands,
-        ratingEstimate: crossingRating(bands),
+        ratingEstimate: fit ? fit.rating : null,
+        ratingRange: fit ? [fit.low, fit.high] : null,
+        ratingBounded: fit ? fit.bounded : false,
         source: suite.source
     };
 }
 
-function runMates (engine, depth) {
+async function runMates (depth, workers) {
     const suite = readSuite('mates.json');
-    const groups = [];
 
-    const progress = makeProgress(
-        suite.groups.reduce((sum, group) => sum + group.puzzles.length, 0)
-    );
+    const tasks = [];
+    suite.groups.forEach((group, groupIndex) => {
+        group.puzzles.forEach(puzzle => {
+            tasks.push({ kind: 'puzzle', puzzle, groupIndex, label: group.id });
+        });
+    });
 
-    for (const group of suite.groups) {
-        let solved = 0;
-        progress.working(group.id);
-
-        for (const puzzle of group.puzzles) {
-            if (solvePuzzle(engine, puzzle)) solved++;
+    const progress = makeProgress(tasks.length);
+    const solvedFlags = await runTasks(tasks, {
+        depth,
+        workers,
+        onProgress (done, total, task) {
+            progress.working(task.label);
             progress.tick();
         }
-
-        groups.push({ id: group.id, solved, total: group.puzzles.length });
-        progress.log(`  ${group.id}: ${solved}/${group.puzzles.length}`);
-    }
+    });
     progress.done();
+
+    const groups = suite.groups.map(group => ({
+        id: group.id, solved: 0, total: group.puzzles.length
+    }));
+
+    solvedFlags.forEach((solved, index) => {
+        if (solved) groups[tasks[index].groupIndex].solved++;
+    });
+
+    groups.forEach(group => console.log(`  ${group.id}: ${group.solved}/${group.total}`));
 
     return { depth, groups, source: suite.source };
 }
@@ -206,39 +189,24 @@ function runMates (engine, depth) {
 // endgame technique
 // ---------------------------------------------------------------------------
 
-function runEndgames (engine, depth) {
+async function runEndgames (depth, workers) {
     const suite = readSuite('endgames.json');
-    const positions = [];
-    const progress = makeProgress(suite.positions.length);
+    const tasks = suite.positions.map(test => ({ kind: 'endgame', test, label: test.id }));
 
-    for (const test of suite.positions) {
-        progress.working(test.id);
-        const game = new engine.Chess(test.fen);
-        const strongSide = game.turn();
-        let moves = 0;
-        let mated = false;
-
-        while (moves < test.maxMoves && !game.game_over()) {
-            const move = game.turn() === strongSide
-                ? engine.getBestMove(game)
-                : randomMove(game);
-            if (!move) break;
-            game.move(move);
-            if (game.turn() !== strongSide) moves++;
-            if (game.in_checkmate()) { mated = true; break; }
+    const progress = makeProgress(tasks.length);
+    const positions = await runTasks(tasks, {
+        depth,
+        workers,
+        onProgress (done, total, task) {
+            progress.working(task.label);
+            progress.tick();
         }
-
-        positions.push({
-            id: test.id,
-            description: test.description,
-            solved: mated,
-            moves: mated ? moves : null,
-            maxMoves: test.maxMoves
-        });
-        progress.tick();
-        progress.log(`  ${test.id}: ${mated ? 'mate in ' + moves : 'not solved'}`);
-    }
+    });
     progress.done();
+
+    positions.forEach(result => {
+        console.log(`  ${result.id}: ${result.solved ? 'mate in ' + result.moves : 'not solved'}`);
+    });
 
     return { depth, positions, method: suite.method };
 }
@@ -375,6 +343,47 @@ async function runMatch (engine, depth, options) {
 // results file
 // ---------------------------------------------------------------------------
 
+/*
+ * Games against the same opponent add up across runs instead of replacing
+ * each other. A hundred games at depth 5 take many hours, so being able to
+ * collect them over several evenings is what makes that sample size
+ * realistic at all. Different opponents are kept side by side.
+ */
+function mergeMatches (existing, fresh) {
+    const merged = existing.slice();
+
+    fresh.forEach(match => {
+        const index = merged.findIndex(m => m.opponentElo === match.opponentElo);
+        if (index === -1) {
+            merged.push(match);
+            return;
+        }
+
+        const previous = merged[index];
+        const wins = previous.wins + match.wins;
+        const draws = previous.draws + match.draws;
+        const losses = previous.losses + match.losses;
+        const games = wins + draws + losses;
+        const score = (wins + draws / 2) / games;
+        const difference = eloDifference(score);
+
+        merged[index] = Object.assign({}, match, {
+            games,
+            wins,
+            draws,
+            losses,
+            score: Math.round(score * 1000) / 10,
+            eloDifference: Math.round(difference),
+            confidence95: eloConfidence(score, games),
+            estimatedElo: Math.round(match.opponentElo + difference)
+        });
+
+        console.log(`  added to the previous ${previous.games} games: ${games} in total`);
+    });
+
+    return merged.sort((a, b) => a.opponentElo - b.opponentElo);
+}
+
 function saveResults (engineVersion, depth, tests) {
     let data = { schemaVersion: 1, runs: [] };
     if (fs.existsSync(RESULTS_FILE)) {
@@ -398,14 +407,8 @@ function saveResults (engineVersion, depth, tests) {
 
     run.date = new Date().toISOString().slice(0, 10);
 
-    // matches against different opponents add up instead of replacing each other
     if (tests.matches) {
-        const existing = run.tests.matches || [];
-        const kept = existing.filter(
-            m => !tests.matches.some(fresh => fresh.opponentElo === m.opponentElo)
-        );
-        tests.matches = kept.concat(tests.matches)
-            .sort((a, b) => a.opponentElo - b.opponentElo);
+        tests.matches = mergeMatches(run.tests.matches || [], tests.matches);
     }
 
     Object.assign(run.tests, tests);
@@ -426,11 +429,15 @@ async function main () {
         process.exit(0);
     }
 
+    const workers = parseInt(args.workers || defaultWorkerCount(), 10);
+
+    // the main thread only needs an engine for the Stockfish based tests;
+    // the position tests each run in their own worker
     const engine = loadEngine();
     useFixedDepth(engine, depth);
     const version = engine.KHIANAT_VERSION;
 
-    console.log(`Khianat ${version}, fixed search depth ${depth}\n`);
+    console.log(`Khianat ${version}, fixed search depth ${depth}, ${workers} worker${workers === 1 ? '' : 's'}\n`);
 
     const needsStockfish = ['acpl', 'match'].includes(command) ||
                            (command === 'all' && args.stockfish);
@@ -443,15 +450,15 @@ async function main () {
 
     if (command === 'puzzles' || command === 'all') {
         console.log('tactics:');
-        tests.puzzles = runPuzzles(engine, depth);
+        tests.puzzles = await runPuzzles(depth, workers);
     }
     if (command === 'mates' || command === 'all') {
         console.log('forced mates:');
-        tests.mates = runMates(engine, depth);
+        tests.mates = await runMates(depth, workers);
     }
     if (command === 'endgames' || command === 'all') {
         console.log('endgame technique:');
-        tests.endgames = runEndgames(engine, depth);
+        tests.endgames = await runEndgames(depth, workers);
     }
     if (command === 'acpl' || (command === 'all' && args.stockfish)) {
         console.log('move quality:');
@@ -472,6 +479,8 @@ async function main () {
 }
 
 main().catch(error => {
-    console.error(error);
+    // a plain message for the everyday mistakes, the full trace for the rest
+    console.error('\n' + (error && error.message ? error.message : error));
+    if (process.env.DEBUG) console.error(error);
     process.exit(1);
 });

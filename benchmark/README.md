@@ -1,12 +1,9 @@
 # Khianat benchmark
 
 Measures how strong the engine actually is, instead of guessing from its
-feature list. Everything here runs **offline on your own machine** and is kept
-strictly separate from the website: no benchmark code and no Stockfish is ever
-shipped to visitors.
-
-The results land in `../benchmark-results.json`, which is the only file
-`benchmark.html` reads.
+feature list. Everything runs **offline on your own machine**; nothing from
+here is shipped to visitors. Results land in `../benchmark-results.json`,
+the only file `benchmark.html` reads.
 
 ## Requirements
 
@@ -38,17 +35,50 @@ node run.js match --stockfish /path/to/stockfish --elo 1500 --games 40
 node run.js all   --stockfish /path/to/stockfish
 ```
 
-Useful options: `--depth N` (search depth, default 3), `--games N`,
-`--elo N` (strength of the Stockfish opponent), `--sf-depth N`.
+Useful options: `--depth N` (search depth, default 3), `--workers N`,
+`--games N`, `--elo N` (strength of the Stockfish opponent), `--sf-depth N`.
+
+## Matches add up
+
+Repeating `match` against the same `--elo` **adds** the games to the previous
+ones and recalculates the score and the interval over the whole sample. Long
+matches can therefore be collected over several sessions. Different opponent
+levels are stored side by side. To start over, delete that entry from
+`../benchmark-results.json`.
+
+How precise the estimate gets, when the score is somewhere near even:
+
+| Games | 95% interval |
+|---|---|
+| 40 | about ±110 Elo |
+| 100 | about ±70 Elo |
+| 200 | about ±50 Elo |
+
+The interval shrinks with the square root of the number of games, so halving
+it costs four times the work. It also grows quickly once the score becomes
+lopsided: an opponent that is beaten every time says almost nothing.
+
+## Speed
+
+`puzzles`, `mates` and `endgames` run on several CPU cores at once. Each
+worker gets its own engine instance, because the engine keeps state in
+globals and sharing one would corrupt the searches. By default the runner
+uses half the logical processors, which is usually the sweet spot on a chip
+with SMT; `--workers 1` forces the old sequential behaviour.
+
+The Stockfish tests stay sequential: their games depend on the previous move
+and talk to a single Stockfish process.
+
+Depth costs a lot. Each extra ply multiplies the work several times over, so
+`--depth 5` on 300 puzzles can run for hours while `--depth 3` takes minutes.
 
 ## Why fixed depth
 
-The difficulty levels on the website are defined by *thinking time*, so a fast
-desktop searches deeper than a phone. That makes time based results impossible
-to compare between machines or between engine versions. The runner therefore
-uses a **fixed search depth** and switches the opening randomisation off, which
-makes every run reproducible. The recorded machine details are only there to
-explain how long a run took, not to explain its results.
+The website's difficulty levels are defined by *thinking time*, so a fast
+desktop searches deeper than a phone and time based results cannot be compared
+between machines or versions. The runner therefore uses a **fixed search
+depth** and switches the opening randomisation off, which makes every run
+reproducible.
 
 ## What the numbers mean
 
