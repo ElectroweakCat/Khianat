@@ -21,7 +21,9 @@ const BANDS = [
     { from: 1200, to: 1499 },
     { from: 1500, to: 1799 },
     { from: 1800, to: 2099 },
-    { from: 2100, to: 2399 }
+    { from: 2100, to: 2399 },
+    { from: 2400, to: 2699 },
+    { from: 2700, to: 2999 }
 ];
 
 const PER_BAND = 50;   // puzzles per rating band
