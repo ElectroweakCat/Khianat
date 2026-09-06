@@ -250,8 +250,9 @@ input[type="submit"]:disabled {
 
 /* ---------- Chessboard ---------- */
 
+/* the board never gets taller than the screen, which matters in landscape */
 #myBoard {
-  width: min(100%, 520px);
+  width: min(100%, 520px, 72vh);
   margin: 0 auto 1rem;
 }
 
@@ -266,16 +267,20 @@ input[type="submit"]:disabled {
   flex-wrap: wrap;
   align-items: center;
   gap: 1px;
-  min-height: 26px;
+  min-height: clamp(22px, 6vw, 28px);
   width: min(100%, 520px);
   margin: 0 auto;
   color: var(--cream-muted);
   font-size: 0.9em;
 }
 
+/* sized in relation to the screen, with a hard ceiling: without the explicit
+   height these render at their natural size, which is enormous on a phone */
 .captured img {
-  width: 22px;
-  height: 22px;
+  flex: 0 0 auto;
+  width: clamp(18px, 5vw, 24px);
+  height: clamp(18px, 5vw, 24px);
+  object-fit: contain;
 }
 
 .captured .material-diff {
@@ -587,13 +592,9 @@ footer {
 
 /* ---------- Mobile ---------- */
 
-@media (max-width: 600px) {
+@media (max-width: 700px) {
   .card {
     padding: 1rem 0.9rem;
-  }
-
-  .site-nav a {
-    padding: 0.5rem 0.7rem;
   }
 
   main {
@@ -603,4 +604,49 @@ footer {
   hr {
     width: 85%;
   }
+
+  /* seven links wrap to two rows on a phone. Sticky, that would permanently
+     cover a quarter of the screen while playing, so it scrolls away here. */
+  .site-nav {
+    position: static;
+    padding: 0.3rem 0.4rem;
+  }
+
+  .site-nav a {
+    padding: 0.4rem 0.65rem;
+    font-size: 0.95em;
+  }
+
+  .site-header {
+    padding: 1.3rem 1rem 0.6rem;
+  }
+
+  .site-logo {
+    width: 64px;
+    height: 64px;
+  }
+}
+
+/* landscape on a phone: almost no height to spare, so the decoration goes */
+@media (orientation: landscape) and (max-height: 520px) {
+  .site-header {
+    padding: 0.6rem 1rem 0.3rem;
+  }
+
+  .site-logo,
+  .site-header .tagline {
+    display: none;
+  }
+
+  .site-header h1 {
+    font-size: 1.7rem;
+  }
+}
+
+/* no double tap zoom and no 300 ms delay on the things you tap while playing */
+button,
+select,
+.site-nav a,
+#myBoard {
+  touch-action: manipulation;
 }

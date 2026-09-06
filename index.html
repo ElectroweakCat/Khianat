@@ -51,7 +51,7 @@
       <link rel="icon" type="image/svg+xml" href="favicon.svg">
 
       <!-- central stylesheet -->
-      <link rel="stylesheet" href="style.css">
+      <link rel="stylesheet" href="style.css?v=4">
 
       <!-- get jQuery from google -->
       <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
@@ -754,9 +754,11 @@
         var config = {
           draggable: true,
           position: 'start',
-          moveSpeed: 'slow',
-          snapbackSpeed: 500,
-          snapSpeed: 100,
+          // brisk rather than leisurely: at "slow" a quick series of moves
+          // feels like waiting for the board rather than playing on it
+          moveSpeed: 200,
+          snapbackSpeed: 200,
+          snapSpeed: 50,
           onDragStart: onDragStart,
           onDrop: onDrop,
           onMouseoutSquare: onMouseoutSquare,
@@ -765,8 +767,23 @@
         }
         board = Chessboard('myBoard', config)
 
-        // keep the board size in sync with the screen (mobile friendly)
-        $(window).on('resize', board.resize)
+        // Keep the board in step with the screen, but only when the width
+        // really changed. Mobile browsers fire resize whenever the address
+        // bar slides in or out, and reacting to that makes the board jump
+        // around mid-game.
+        var lastViewportWidth = window.innerWidth
+        var resizeTimer = null
+
+        $(window).on('resize orientationchange', function () {
+          if (window.innerWidth === lastViewportWidth) return
+          lastViewportWidth = window.innerWidth
+
+          window.clearTimeout(resizeTimer)
+          resizeTimer = window.setTimeout(function () {
+            board.resize()
+            board.position(game.fen(), false) // no animation, just redraw
+          }, 150)
+        })
 
         $('#soundBtn').on('click', toggleSound)
         updateSoundButton()
