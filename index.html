@@ -180,7 +180,7 @@
 
       <section id="Play" class="card">
         <h2>Play against the computer!</h2>
-        <p>You have the white pieces. Drag a piece, or click it and then its target square.</p>
+        <p>Drag a piece, or click it and then its target square.</p>
         <div class="difficulty-row">
           <label for="difficulty">Difficulty:</label>
           <select id="difficulty">
@@ -191,6 +191,14 @@
             <option value="5">5 &middot; Maximum</option>
           </select>
           <button id="soundBtn" type="button" aria-pressed="true">Sound: on</button>
+        </div>
+        <div class="difficulty-row">
+          <label for="playerColor">You play:</label>
+          <select id="playerColor">
+            <option value="w" selected>White</option>
+            <option value="b">Black</option>
+            <option value="random">Random</option>
+          </select>
         </div>
         <div id="capturedTop" class="captured" role="img" aria-label="Khianat has captured nothing"></div>
         <div id="myBoard"></div>
@@ -224,6 +232,28 @@
         var engineDifficulty = 3
         var gameResigned = false
 
+        // who plays what. colourChoice is the setting, playerColor the colour
+        // actually in use for the current game ('random' picks one per game).
+        var colourChoice = 'w'
+        var playerColor = 'w'
+        var engineColor = 'b'
+
+        function startColours () {
+          playerColor = colourChoice === 'random'
+            ? (Math.random() < 0.5 ? 'w' : 'b')
+            : colourChoice
+          engineColor = playerColor === 'w' ? 'b' : 'w'
+        }
+
+        // a game counts as started once the player has made a move of their own
+        function playerHasMoved () {
+          var history = game.history({ verbose: true })
+          for (var i = 0; i < history.length; i++) {
+            if (history[i].color === playerColor) return true
+          }
+          return false
+        }
+
         // the game is over when chess.js says so or the player resigned
         function isGameOver () {
           return gameResigned || game.game_over()
@@ -256,7 +286,7 @@
         // Khianat's move: dispatch to the worker, or think right here
         function makeMove () {
           if (isGameOver()) return
-          if (game.turn() !== 'b') return // Khianat plays Black only
+          if (game.turn() !== engineColor) return
 
           if (engineWorker) {
             searchId++
@@ -277,7 +307,7 @@
 
         function finishEngineMove (move) {
           if (move === null) return
-          if (isGameOver() || game.turn() !== 'b') return
+          if (isGameOver() || game.turn() !== engineColor) return
 
           var played = game.move(move)
           if (played === null) return // stale or invalid, never crash the UI
@@ -349,10 +379,9 @@
         // do not pick up pieces if the game is over
         if (isGameOver()) return false
 
-        // only pick up pieces for the side to move
-        if ((game.turn() === 'w' && piece.search(/^b/) !== -1) ||
-        (game.turn() === 'b' && piece.search(/^w/) !== -1))
-        return false
+        // only your own pieces, and only when it is your turn
+        if (piece[0] !== playerColor) return false
+        if (game.turn() !== playerColor) return false
 
         // picking up an own piece replaces any click selection
         clearClickSelection()
@@ -397,7 +426,7 @@
         function onMouseoverSquare (square, piece) {
           // no hints while Khianat is thinking (or the game is over)
           if (isGameOver()) return
-          if (game.turn() !== 'w') return
+          if (game.turn() !== playerColor) return
 
           // get list of possible moves for this square
           var moves = game.moves({
@@ -445,7 +474,7 @@
 
         function selectSquare (square) {
           var piece = game.get(square)
-          if (!piece || piece.color !== 'w') return
+          if (!piece || piece.color !== playerColor) return
           clickFrom = square
           $('#myBoard .square-' + square).addClass('highlight-selected')
           showTargets(square)
@@ -453,7 +482,7 @@
 
         function handleSquareTap (square) {
           if (isGameOver()) return
-          if (game.turn() !== 'w') return
+          if (game.turn() !== playerColor) return
 
           // first tap: select one of your pieces
           // (chessboard.js may start a drag at the same time, that is fine)
@@ -541,8 +570,8 @@
 
         function updateMaterial () {
           var history = game.history({ verbose: true })
-          var takenByWhite = {} // black pieces, captured by the player
-          var takenByBlack = {} // white pieces, captured by Khianat
+          var takenByWhite = {} // black pieces, taken by White
+          var takenByBlack = {} // white pieces, taken by Black
 
           for (var i = 0; i < history.length; i++) {
             var move = history[i]
@@ -562,8 +591,16 @@
             }
           }
 
-          renderCaptured(document.getElementById('capturedTop'), 'w', takenByBlack, -balance, 'Khianat')
-          renderCaptured(document.getElementById('capturedBottom'), 'b', takenByWhite, balance, 'You')
+          // the top row belongs to Khianat, the bottom row to the player,
+          // whichever colours the two of them happen to have
+          var takenByPlayer = playerColor === 'w' ? takenByWhite : takenByBlack
+          var takenByEngine = playerColor === 'w' ? takenByBlack : takenByWhite
+          var playerLead = playerColor === 'w' ? balance : -balance
+
+          renderCaptured(document.getElementById('capturedTop'),
+                         playerColor, takenByEngine, -playerLead, 'Khianat')
+          renderCaptured(document.getElementById('capturedBottom'),
+                         engineColor, takenByPlayer, playerLead, 'You')
         }
 
         // mark the from and to squares of the move that was just played
@@ -576,19 +613,28 @@
         function newGame () {
           window.clearTimeout(thinkTimer) // in case Khianat was about to move
           searchId++ // invalidates any search still running in the worker
+          startColours()
+
           game.reset()
-          board.start()
+          board.orientation(playerColor === 'w' ? 'white' : 'black')
+          board.start(false) // no animation: it is a fresh board anyway
           clearClickSelection()
           $('#myBoard .square-55d63').removeClass('highlight-last')
           resultRecorded = false
           gameResigned = false
           saveCurrentGame() // clears the stored game
           updateStatus()
+          refreshStatsDisplay()
+
+          // playing Black means Khianat opens
+          if (engineColor === 'w') {
+            thinkTimer = window.setTimeout(makeMove, 400)
+          }
         }
 
         // giving up counts as a loss, no escaping the statistics
         function resignGame () {
-          if (isGameOver() || game.history().length === 0) return
+          if (isGameOver() || !playerHasMoved()) return
 
           window.clearTimeout(thinkTimer)
           searchId++ // a search still running in the worker must not move anymore
@@ -598,13 +644,13 @@
           recordResultOnce('l')
           saveCurrentGame() // clears the stored game
           playSound(yesSound)
-          $status.html('Game over, White resigned.')
+          $status.html('Game over, ' + (playerColor === 'w' ? 'White' : 'Black') + ' resigned.')
           updateGameButton()
         }
 
         // one button: "Resign" during a game, "New game" once it is over
         function updateGameButton () {
-          if (!isGameOver() && game.history().length > 0) {
+          if (!isGameOver() && playerHasMoved()) {
             $('#gameBtn').text('Resign')
           } else {
             $('#gameBtn').text('New game')
@@ -625,7 +671,8 @@
             } else {
               window.localStorage.setItem(GAME_STORAGE_KEY, JSON.stringify({
                 history: game.history(),
-                difficulty: engineDifficulty
+                difficulty: engineDifficulty,
+                playerColor: playerColor
               }))
             }
           } catch (e) {
@@ -650,10 +697,18 @@
               $('#difficulty').val(String(saved.difficulty))
             }
 
-            board.position(game.fen())
+            if (saved.playerColor === 'w' || saved.playerColor === 'b') {
+              playerColor = saved.playerColor
+              engineColor = playerColor === 'w' ? 'b' : 'w'
+              colourChoice = playerColor
+              $('#playerColor').val(playerColor)
+            }
+
+            board.orientation(playerColor === 'w' ? 'white' : 'black')
+            board.position(game.fen(), false)
 
             // reloaded while Khianat was thinking: let it move again
-            if (!game.game_over() && game.turn() === 'b') {
+            if (!game.game_over() && game.turn() === engineColor) {
               thinkTimer = window.setTimeout(makeMove, 500)
             }
           } catch (e) {
@@ -675,7 +730,7 @@
           recordPersonalResult(engineDifficulty, result, moves)
           refreshStatsDisplay()
 
-          postGlobalResult(engineDifficulty, result, moves, game.history()[0])
+          postGlobalResult(engineDifficulty, result, moves, game.history()[0], engineColor)
             .then(function (data) {
               globalStatsCache = data
               refreshStatsDisplay()
@@ -715,15 +770,12 @@
         if (game.in_checkmate()) {
         status = 'Game over, ' + moveColor + ' is in checkmate.'
 
-        // play sound: "Yes" if the computer checkmated the player (White),
-        // "No" if the player checkmated the computer (Black)
-        if (moveColor === 'White') {
-        playSound(yesSound)
-        } else {
-        playSound(noSound)
-        }
+        // the side to move is the one that got mated
+        var playerLost = game.turn() === playerColor
 
-        recordResultOnce(moveColor === 'White' ? 'l' : 'w')
+        // "Yes" when Khianat wins, a grumpy "No" when it does not
+        playSound(playerLost ? yesSound : noSound)
+        recordResultOnce(playerLost ? 'l' : 'w')
         }
 
         // draw?
@@ -796,29 +848,49 @@
           }
         })
 
+        /*
+         * Changing difficulty or colour mid-game would distort the
+         * statistics, so it restarts and the running game counts as a loss.
+         * Before the player's first move there is nothing to lose.
+         */
+        function confirmRestart (message) {
+          if (isGameOver() || !playerHasMoved()) return true
+          if (!window.confirm(message)) return false
+          recordResultOnce('l') // counted at the settings that were in play
+          return true
+        }
+
         $('#difficulty').on('change', function () {
           var newLevel = parseInt(this.value, 10)
+          var wasRunning = !isGameOver() && playerHasMoved()
 
-          // changing the difficulty mid-game would distort the statistics:
-          // it restarts the game and the running game counts as a loss
-          if (!isGameOver() && game.history().length > 0) {
-            var ok = window.confirm(
-              'Changing the difficulty restarts the game. ' +
-              'The current game will be counted as a loss. OK?'
-            )
-            if (!ok) {
-              this.value = String(engineDifficulty) // keep the old level
-              return
-            }
-            recordResultOnce('l') // counted at the level that was being played
-            engineDifficulty = newLevel
-            newGame()
-          } else {
-            engineDifficulty = newLevel
+          if (!confirmRestart('Changing the difficulty restarts the game. ' +
+                              'The current game will be counted as a loss. OK?')) {
+            this.value = String(engineDifficulty) // keep the old level
+            return
           }
 
-          refreshStatsDisplay()
-          saveCurrentGame()
+          engineDifficulty = newLevel
+          if (wasRunning) {
+            newGame()
+          } else {
+            refreshStatsDisplay()
+            saveCurrentGame()
+          }
+        })
+
+        $('#playerColor').on('change', function () {
+          var newChoice = this.value
+          var wasRunning = !isGameOver() && playerHasMoved()
+
+          if (!confirmRestart('Changing colour restarts the game. ' +
+                              'The current game will be counted as a loss. OK?')) {
+            this.value = colourChoice // keep the old choice
+            return
+          }
+
+          colourChoice = newChoice
+          newGame() // a colour change always means a fresh board
         })
 
         restoreSavedGame()

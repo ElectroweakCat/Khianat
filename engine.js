@@ -71,45 +71,86 @@ var searchAborted = false;
 // ---------------------------------------------------------------------------
 
 var OPENING_BOOK = {
-    // --- first black move ---
-    // Deliberately broad: the more replies per position, the harder it is to
-    // prepare a line against Khianat. Odd choices keep a small weight.
+    // =======================================================================
+    // Khianat with White: small, sound, and never the same twice
+    // =======================================================================
+
+    // the starting position
+    'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1':
+        [{ move: 'e4', weight: 0.25 },
+         { move: 'd4', weight: 0.25 },
+         { move: 'Nf3', weight: 0.2 },
+         { move: 'c4', weight: 0.15 },
+         { move: 'g3', weight: 0.1 },
+         { move: 'b3', weight: 0.05 }],  // Larsen, because why not
+
+    // 1. e4 e5
+    'rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2':
+        [{ move: 'Nf3', weight: 0.5 },
+         { move: 'Nc3', weight: 0.3 },   // Vienna
+         { move: 'Bc4', weight: 0.2 }],  // Bishop's opening
+
+    // 1. e4 c5
+    'rnbqkbnr/pp1ppppp/8/2p5/4P3/8/PPPP1PPP/RNBQKBNR w KQkq c6 0 2':
+        [{ move: 'Nf3', weight: 0.5 },
+         { move: 'Nc3', weight: 0.3 },   // closed Sicilian
+         { move: 'c3', weight: 0.2 }],   // Alapin
+
+    // 1. d4 d5
+    'rnbqkbnr/ppp1pppp/8/3p4/3P4/8/PPP1PPPP/RNBQKBNR w KQkq d6 0 2':
+        [{ move: 'c4', weight: 0.5 },
+         { move: 'Nf3', weight: 0.3 },
+         { move: 'Bf4', weight: 0.2 }],  // London
+
+    // 1. d4 Nf6
+    'rnbqkb1r/pppppppp/5n2/8/3P4/8/PPP1PPPP/RNBQKBNR w KQkq - 1 2':
+        [{ move: 'c4', weight: 0.5 },
+         { move: 'Nf3', weight: 0.3 },
+         { move: 'Bg5', weight: 0.2 }],  // Trompowsky
+
+    // =======================================================================
+    // Khianat with Black: the road less travelled
+    //
+    // Deliberately steers away from the main lines everyone has prepared.
+    // Everything here is perfectly sound, just less fashionable, which
+    // suits an engine named after betrayal.
+    // =======================================================================
 
     // 1. e4
     'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1':
-        [{ move: 'c5', weight: 0.25 },   // Sicilian
-         { move: 'e5', weight: 0.25 },   // open games
-         { move: 'e6', weight: 0.15 },   // French
+        [{ move: 'Nf6', weight: 0.2 },   // Alekhine, invites White to overextend
+         { move: 'd5', weight: 0.2 },    // Scandinavian
+         { move: 'g6', weight: 0.2 },    // Modern
          { move: 'c6', weight: 0.15 },   // Caro-Kann
-         { move: 'd5', weight: 0.05 },   // Scandinavian
-         { move: 'Nf6', weight: 0.05 },  // Alekhine
-         { move: 'g6', weight: 0.05 },   // Modern
-         { move: 'd6', weight: 0.05 }],  // Pirc
+         { move: 'd6', weight: 0.1 },    // Pirc
+         { move: 'Nc6', weight: 0.1 },   // Nimzowitsch defence
+         { move: 'b6', weight: 0.05 }],  // Owen's, properly odd
 
     // 1. d4
     'rnbqkbnr/pppppppp/8/8/3P4/8/PPP1PPPP/RNBQKBNR b KQkq d3 0 1':
-        [{ move: 'Nf6', weight: 0.3 },
-         { move: 'd5', weight: 0.25 },
-         { move: 'e6', weight: 0.15 },
-         { move: 'g6', weight: 0.15 },
-         { move: 'f5', weight: 0.1 },    // Dutch
-         { move: 'e5', weight: 0.05 }],  // Englund gambit, just for fun
+        [{ move: 'f5', weight: 0.2 },    // Dutch
+         { move: 'g6', weight: 0.2 },    // Modern
+         { move: 'Nf6', weight: 0.2 },
+         { move: 'c5', weight: 0.15 },   // Benoni
+         { move: 'b6', weight: 0.1 },    // English defence
+         { move: 'e6', weight: 0.1 },
+         { move: 'e5', weight: 0.05 }],  // Englund gambit, the house speciality
 
     // 1. Nf3
     'rnbqkbnr/pppppppp/8/8/8/5N2/PPPPPPPP/RNBQKB1R b KQkq - 1 1':
-        [{ move: 'd5', weight: 0.3 },
-         { move: 'Nf6', weight: 0.3 },
+        [{ move: 'g6', weight: 0.25 },
+         { move: 'd5', weight: 0.25 },
+         { move: 'Nf6', weight: 0.2 },
          { move: 'c5', weight: 0.2 },
-         { move: 'g6', weight: 0.15 },
-         { move: 'b5', weight: 0.05 }],  // Polish defence, cheeky
+         { move: 'b5', weight: 0.1 }],   // Polish defence, cheeky
 
     // 1. c4
     'rnbqkbnr/pppppppp/8/8/2P5/8/PP1PPPPP/RNBQKBNR b KQkq c3 0 1':
-        [{ move: 'e5', weight: 0.3 },
-         { move: 'Nf6', weight: 0.3 },
-         { move: 'c5', weight: 0.15 },
-         { move: 'e6', weight: 0.15 },
-         { move: 'g6', weight: 0.1 }],
+        [{ move: 'g6', weight: 0.25 },
+         { move: 'e5', weight: 0.25 },
+         { move: 'Nf6', weight: 0.2 },
+         { move: 'b6', weight: 0.15 },
+         { move: 'e6', weight: 0.15 }],
 
     // 1. Nc3
     'rnbqkbnr/pppppppp/8/8/8/2N5/PPPPPPPP/R1BQKBNR b KQkq - 1 1':
@@ -156,6 +197,18 @@ var OPENING_BOOK = {
          { move: 'Nf6', weight: 0.2 }],
 
     // --- second black move ---
+
+    // Scandinavian: 1. e4 d5 2. exd5
+    'rnbqkbnr/ppp1pppp/8/3P4/8/8/PPPP1PPP/RNBQKBNR b KQkq - 0 2':
+        [{ move: 'Qxd5', weight: 0.6 }, { move: 'Nf6', weight: 0.4 }],
+
+    // Alekhine: 1. e4 Nf6 2. e5
+    'rnbqkb1r/pppppppp/5n2/4P3/8/8/PPPP1PPP/RNBQKBNR b KQkq - 0 2':
+        [{ move: 'Nd5', weight: 1 }],
+
+    // Modern: 1. e4 g6 2. d4
+    'rnbqkbnr/pppppp1p/6p1/8/3PP3/8/PPP2PPP/RNBQKBNR b KQkq d3 0 2':
+        [{ move: 'Bg7', weight: 0.7 }, { move: 'd6', weight: 0.3 }],
 
     // Englund gambit: 1. d4 e5 2. dxe5
     'rnbqkbnr/pppp1ppp/8/4P3/8/8/PPP1PPPP/RNBQKBNR b KQkq - 0 2':

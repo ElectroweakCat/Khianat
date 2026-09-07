@@ -199,7 +199,7 @@ function fetchGlobalStats () {
     });
 }
 
-function postGlobalResult (level, result, moves, firstMove) {
+function postGlobalResult (level, result, moves, firstMove, engineColor) {
     return fetch('stats.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -208,7 +208,8 @@ function postGlobalResult (level, result, moves, firstMove) {
             result: result,
             moves: moves,
             firstMove: firstMove || '',
-            country: guessCountry()
+            country: guessCountry(),
+            engineColor: engineColor || ''
         })
     }).then(function (response) {
         if (!response.ok) throw new Error('stats request failed');

@@ -25,7 +25,8 @@ $data = array(
     'longestGame' => null,   // moves
     'firstMoves' => array(), // SAN => count
     'countries' => array(),  // ISO code => { games, w } (guessed from browser timezone)
-    'daily' => array()       // YYYY-MM-DD => games (last 30 days)
+    'daily' => array(),      // YYYY-MM-DD => games (last 30 days)
+    'engineColors' => array('w' => 0, 'b' => 0) // how often Khianat had which colour
 );
 foreach ($levels as $lv) {
     $data['levels'][$lv] = array('w' => 0, 'd' => 0, 'l' => 0);
@@ -61,6 +62,13 @@ if (file_exists($file)) {
         }
         if (isset($stored['daily']) && is_array($stored['daily'])) {
             $data['daily'] = $stored['daily'];
+        }
+        if (isset($stored['engineColors']) && is_array($stored['engineColors'])) {
+            foreach (array('w', 'b') as $c) {
+                if (isset($stored['engineColors'][$c])) {
+                    $data['engineColors'][$c] = (int) $stored['engineColors'][$c];
+                }
+            }
         }
     }
 }
@@ -104,6 +112,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $data['countries'][$country]['games']++;
     if ($result === 'w') {
         $data['countries'][$country]['w']++;
+    }
+
+    // Which colour Khianat had in this game
+    $engineColor = isset($body['engineColor']) ? $body['engineColor'] : '';
+    if ($engineColor === 'w' || $engineColor === 'b') {
+        $data['engineColors'][$engineColor]++;
     }
 
     // Games per day, kept for the last 30 days only

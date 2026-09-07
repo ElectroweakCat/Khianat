@@ -2,7 +2,7 @@
 
 A chess engine written from scratch in plain JavaScript, playable in the browser.
 
-**[Play it at khianat.org](https://khianat.org/)** — you have the white pieces.
+**[Play it at khianat.org](https://khianat.org/)** — pick your colour and go.
 
 *Khianat* is Indonesian for betrayal. The logo is a pawn casting the shadow of a queen: it looks harmless, it is not.
 
