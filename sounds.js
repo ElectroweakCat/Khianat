@@ -174,7 +174,7 @@ var Sounds = (function () {
     var EVENTS = {
         move: function () { impact(1, 0.55); },
         // heavier than a quiet move, but no longer the loudest thing around
-        capture: function () { impact(0.82, 0.62); noise(0.05, 0.09); },
+        capture: function () { impact(0.82, 0.5); noise(0.05, 0.06); },
         castle: function () { impact(1.06, 0.45); impact(0.92, 0.6, 0.09); },
         check: function () { impact(1, 0.5); tone(1046, 0.12, 0.1, 0.02); tone(1568, 0.14, 0.08, 0.1); },
         promote: function () {
@@ -338,7 +338,7 @@ var Sounds = (function () {
                 utterance.lang = 'en-GB';
             }
 
-            utterance.rate = 1.02;    // just past neutral, so it stays crisp
+            utterance.rate = 1.07;    // a touch above neutral, still crisp
             utterance.pitch = 0.55;   // low and unimpressed
             utterance.volume = 0.9;
 
