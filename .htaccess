@@ -1,5 +1,14 @@
 # Khianat: compression, caching and a bit of housekeeping
 
+# Data endpoints stay readable for crawlers, because the stats and benchmark
+# pages render their content from them. They just must not turn up in search
+# results as raw JSON themselves.
+<IfModule mod_headers.c>
+  <FilesMatch "^(poll|stats)\.php$|^benchmark-results\.json$">
+    Header set X-Robots-Tag "noindex"
+  </FilesMatch>
+</IfModule>
+
 # the raw counter files are only meant for the PHP scripts
 <IfModule mod_authz_core.c>
   <FilesMatch "^(poll-data|poll-voters|stats-data)\.json$">

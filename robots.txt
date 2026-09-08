@@ -1,10 +1,17 @@
 User-agent: *
 Allow: /
-Disallow: /poll.php
-Disallow: /stats.php
+
+# poll.php, stats.php and benchmark-results.json are deliberately NOT blocked:
+# the stats and benchmark pages build their content from them, so a crawler
+# that cannot read them would see empty pages. They carry a noindex header
+# instead, which keeps the raw data out of search results.
+
+# raw counter files, unreachable from the browser anyway
 Disallow: /poll-data.json
 Disallow: /poll-voters.json
 Disallow: /stats-data.json
+
+# the offline benchmark runner is not part of the website
 Disallow: /benchmark/
 
 Sitemap: https://khianat.org/sitemap.xml
