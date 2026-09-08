@@ -338,8 +338,8 @@ var Sounds = (function () {
                 utterance.lang = 'en-GB';
             }
 
-            utterance.rate = 0.88;
-            utterance.pitch = 0.55;   // low, and in no hurry
+            utterance.rate = 1.02;    // just past neutral, so it stays crisp
+            utterance.pitch = 0.55;   // low and unimpressed
             utterance.volume = 0.9;
 
             window.speechSynthesis.cancel();
