@@ -45,7 +45,7 @@
 
         <section class="card doc">
           <h2>Khianat</h2>
-          <p>My self-made chess engine. It runs entirely in your browser: no engine server, no cloud, nothing phones home. This page explains how it works, in the order the engine itself thinks, and matches the code actually running here.</p>
+          <p>My self-made chess engine. It runs entirely in your browser: no engine server, no cloud. This page explains how it works, in the order the engine itself thinks, and matches the code actually running here.</p>
           <p><strong>The name.</strong> I was learning Indonesian when I started, and wanted something no other chess site would have. <em>Khianat</em> means betrayal &mdash; an Arabic loanword (<em>&#1582;&#1616;&#1610;&#1614;&#1575;&#1606;&#1614;&#1577;</em>, <em>khiy&#257;na</em>) that reached Indonesian through Malay. It fits an engine meant to win with tactics, traps and moves you did not see coming. The logo says the same: a pawn casting the shadow of a queen. It looks harmless. It is not.</p>
         </section>
 
@@ -227,7 +227,7 @@
           <p><strong>Good at:</strong> short tactics, not hanging pieces, converting won positions. Lower levels scale that down to something a beginner can beat.</p>
           <p><strong>Weak at:</strong> pawn structure, king safety and mobility are missing from the evaluation, there is no transposition table, and quiet positional play beyond its search depth escapes it. Patient, solid play is the best recipe against it.</p>
           <figure>
-            <svg viewBox="0 0 700 310" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Elo history of Khianat">
+            <svg viewBox="0 0 700 322" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Elo history of Khianat">
               <g stroke="rgba(235,235,196,0.2)" stroke-width="1">
                 <line x1="70" y1="260" x2="660" y2="260"/>
                 <line x1="70" y1="210" x2="660" y2="210"/>
@@ -242,25 +242,30 @@
                 <text x="62" y="114">1500</text>
                 <text x="62" y="64">2000</text>
               </g>
-              <polyline points="130,235 300,215 470,100 620,90" fill="none" stroke="#f0d9b5" stroke-width="2.5"/>
+              <polyline points="110,235 250,215 400,100 530,90 645,84" fill="none" stroke="#f0d9b5" stroke-width="2.5"/>
               <g fill="#f0d9b5" stroke="#6f1d1d" stroke-width="1.5">
-                <circle cx="130" cy="235" r="6"/>
-                <circle cx="300" cy="215" r="6"/>
-                <circle cx="470" cy="100" r="6"/>
-                <circle cx="620" cy="90" r="6"/>
+                <circle cx="110" cy="235" r="6"/>
+                <circle cx="250" cy="215" r="6"/>
+                <circle cx="400" cy="100" r="6"/>
+                <circle cx="530" cy="90" r="6"/>
               </g>
+              <!-- the measured point gets a ring, to set it apart from the guesses -->
+              <circle cx="645" cy="84" r="8" fill="#6f1d1d" stroke="#f0d9b5" stroke-width="3"/>
               <g fill="rgba(235,235,196,0.75)" font-size="13" text-anchor="middle" font-family="Georgia, serif">
-                <text x="130" y="290">random moves</text>
-                <text x="300" y="290">greedy, depth 1</text>
-                <text x="470" y="290">alpha-beta search</text>
-                <text x="620" y="290">faster search</text>
-                <text x="130" y="222">~250</text>
-                <text x="300" y="202">~450</text>
-                <text x="470" y="87">~1500&#8211;1700</text>
-                <text x="620" y="77">~1600&#8211;1800</text>
+                <text x="110" y="290">random moves</text>
+                <text x="250" y="290">greedy, depth 1</text>
+                <text x="400" y="290">alpha-beta search</text>
+                <text x="530" y="290">faster search</text>
+                <text x="645" y="290">1.3.0</text>
+                <text x="645" y="306">(benchmarked)</text>
+                <text x="110" y="222">~250</text>
+                <text x="250" y="202">~450</text>
+                <text x="400" y="87">~1500&#8211;1700</text>
+                <text x="530" y="57">~1600&#8211;1800</text>
+                <text x="645" y="68" fill="#f0d9b5">&#8776;1760</text>
               </g>
             </svg>
-            <figcaption>Estimated strength of the engine generations so far. These are honest guesses, not measured ratings: Khianat has never played a rated game. Measured results live on the <a href="benchmark.html">benchmark page</a>.</figcaption>
+            <figcaption>Strength of the engine generations so far. The first four are guesses from what the engine can do. Tactics puzzles and games against Stockfish, on the <a href="benchmark.html">benchmark page</a>.</figcaption>
           </figure>
           <p><strong>Next up:</strong> a transposition table, pawn structure and king safety in the evaluation, check evasions in the quiescence search. Each a realistic future blog entry.</p>
         </section>

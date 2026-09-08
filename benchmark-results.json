@@ -233,7 +233,7 @@
     "matches": [
      {
       "depth": 5,
-      "opponent": "Stockfish, UCI_LimitStrength at UCI_Elo 1600, 100 ms per move",
+      "opponent": "Stockfish 19, UCI_LimitStrength at UCI_Elo 1600, 100 ms per move",
       "opponentElo": 1600,
       "games": 6,
       "wins": 3,

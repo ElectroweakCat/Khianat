@@ -62,7 +62,6 @@
               <div class="stat-label">times Khianat was beaten</div>
             </div>
           </div>
-          <div id="colourSplit" class="stat-row"></div>
         </section>
 
         <section class="card">
@@ -199,31 +198,10 @@
           }
           document.getElementById('funFacts').innerHTML = facts
 
-          showColourSplit(data)
+          // the colour split is still collected in stats-data.json, it just
+          // does not earn its place on the page yet
           showCountryStats(data)
           showDailyStats(data)
-        }
-
-        // which colour Khianat played, across all games and all difficulties
-        function showColourSplit (data) {
-          var colours = data.engineColors || {}
-          var white = colours.w || 0
-          var black = colours.b || 0
-          var total = white + black
-          if (total === 0) return
-
-          var whiteShare = (white / total) * 100
-
-          document.getElementById('colourSplit').innerHTML =
-            '<div class="stats-title">Khianat\'s side of the board</div>' +
-            '<div class="result-bar">' +
-              '<span class="seg-w" style="width:' + whiteShare.toFixed(1) + '%"></span>' +
-              '<span class="seg-l" style="width:' + (100 - whiteShare).toFixed(1) + '%"></span>' +
-            '</div>' +
-            '<div class="result-legend">' +
-              Math.round(whiteShare) + '% as White (' + white + ') &middot; ' +
-              Math.round(100 - whiteShare) + '% as Black (' + black + ')' +
-            '</div>'
         }
 
         // top 10 countries by games, with win rate against Khianat

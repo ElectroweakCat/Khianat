@@ -173,7 +173,8 @@ var Sounds = (function () {
 
     var EVENTS = {
         move: function () { impact(1, 0.55); },
-        capture: function () { impact(0.8, 0.9); noise(0.07, 0.18); },
+        // heavier than a quiet move, but no longer the loudest thing around
+        capture: function () { impact(0.82, 0.62); noise(0.05, 0.09); },
         castle: function () { impact(1.06, 0.45); impact(0.92, 0.6, 0.09); },
         check: function () { impact(1, 0.5); tone(1046, 0.12, 0.1, 0.02); tone(1568, 0.14, 0.08, 0.1); },
         promote: function () {
@@ -256,15 +257,91 @@ var Sounds = (function () {
 
     function countMove () { moveCounter++; }
 
+    /*
+     * Picking a voice.
+     *
+     * Which voices exist depends entirely on the operating system, so there
+     * is no single name to ask for. These are the deep English voices that
+     * actually ship with the common platforms, best first: Chrome on
+     * Android and desktop, Apple devices, then Windows. If none of them are
+     * there, any English voice that identifies itself as male will do, and
+     * failing that we simply take the default and lean on the low pitch.
+     */
+    var PREFERRED_VOICES = [
+        'Google UK English Male',   // Chrome
+        'Microsoft Ryan',           // Windows 11
+        'Microsoft George',         // Windows
+        'Microsoft Guy',
+        'Daniel',                   // macOS and iOS, en-GB
+        'Arthur',
+        'Oliver',
+        'Alex',                     // macOS, en-US
+        'Microsoft David',
+        'Rishi'
+    ];
+
+    var MALE_NAMES = /(male|daniel|arthur|oliver|alex|fred|george|ryan|guy|david|mark|thomas|james|aaron|rishi)/i;
+    var chosenVoice = null;
+
+    function pickVoice () {
+        if (!window.speechSynthesis || !window.speechSynthesis.getVoices) return null;
+
+        var voices = window.speechSynthesis.getVoices();
+        if (!voices || !voices.length) return null;
+
+        var i, j;
+
+        // 1. a known deep voice, in order of preference
+        for (i = 0; i < PREFERRED_VOICES.length; i++) {
+            for (j = 0; j < voices.length; j++) {
+                if (voices[j].name.indexOf(PREFERRED_VOICES[i]) !== -1) return voices[j];
+            }
+        }
+
+        // 2. any English voice that sounds like it belongs to a man
+        for (j = 0; j < voices.length; j++) {
+            if (/^en/i.test(voices[j].lang) &&
+                MALE_NAMES.test(voices[j].name) &&
+                !/female/i.test(voices[j].name)) {
+                return voices[j];
+            }
+        }
+
+        // 3. any English voice at all
+        for (j = 0; j < voices.length; j++) {
+            if (/^en/i.test(voices[j].lang)) return voices[j];
+        }
+
+        return null;
+    }
+
+    function refreshVoice () {
+        chosenVoice = pickVoice();
+    }
+
+    if (window.speechSynthesis) {
+        refreshVoice(); // often empty on the first call
+        window.speechSynthesis.onvoiceschanged = refreshVoice;
+    }
+
     function speak (text) {
         if (!enabled || !text || !window.speechSynthesis) return null;
 
         try {
+            if (!chosenVoice) refreshVoice();
+
             var utterance = new SpeechSynthesisUtterance(text);
-            utterance.rate = 0.92;
-            utterance.pitch = 0.65;   // low and unimpressed
+            if (chosenVoice) {
+                utterance.voice = chosenVoice;
+                utterance.lang = chosenVoice.lang;
+            } else {
+                utterance.lang = 'en-GB';
+            }
+
+            utterance.rate = 0.88;
+            utterance.pitch = 0.55;   // low, and in no hurry
             utterance.volume = 0.9;
-            utterance.lang = 'en-GB';
+
             window.speechSynthesis.cancel();
             window.speechSynthesis.speak(utterance);
         } catch (e) { /* no speech available */ }

@@ -204,8 +204,8 @@
                    '<div class="big-stat"><div class="stat-number">' + acpl.blunderRate + '%</div>' +
                      '<div class="stat-label">moves losing 2 pawns or more</div></div>' +
                  '</div>' +
-                 '<p class="result-legend">' + acpl.movesJudged + ' moves judged by Stockfish at depth ' +
-                 acpl.stockfishDepth + '.</p>'
+                 '<p class="result-legend">' + acpl.movesJudged + ' moves judged by ' +
+                 (acpl.judge || 'Stockfish') + ' at depth ' + acpl.stockfishDepth + '.</p>'
         }
 
         function renderMatches (matches) {
@@ -231,6 +231,43 @@
           return html
         }
 
+        /*
+         * The rating suggested by match play: if several opponents were
+         * faced, their estimates are averaged, weighted by how many games
+         * were played against each.
+         */
+        function matchRating (run) {
+          var matches = (run.tests && run.tests.matches) || []
+          var games = 0
+          var weighted = 0
+
+          for (var i = 0; i < matches.length; i++) {
+            games += matches[i].games
+            weighted += matches[i].estimatedElo * matches[i].games
+          }
+          return games > 0 ? { rating: Math.round(weighted / games), games: games } : null
+        }
+
+        /*
+         * One number out of two very different measurements. Match play
+         * counts three times as much as the puzzles: playing a whole game
+         * is what a rating is supposed to describe, while puzzles only
+         * cover forced tactics, which flatters a search engine.
+         */
+        function overallRating (run) {
+          var match = matchRating(run)
+          var tactics = run.tests && run.tests.puzzles
+            ? fitPuzzleRating(run.tests.puzzles.bands)
+            : null
+
+          if (match && tactics && tactics.bounded) {
+            return Math.round(0.75 * match.rating + 0.25 * tactics.rating)
+          }
+          if (match) return match.rating
+          if (tactics && tactics.bounded) return tactics.rating
+          return null
+        }
+
         function renderRun (run) {
           var html = '<p class="result-legend">Engine version ' + run.engineVersion +
                      ', fixed depth ' + run.searchDepth + ', measured on ' + run.date +
@@ -241,6 +278,16 @@
           if (run.tests.endgames) html += renderEndgames(run.tests.endgames)
           if (run.tests.acpl) html += renderAcpl(run.tests.acpl)
           if (run.tests.matches && run.tests.matches.length) html += renderMatches(run.tests.matches)
+
+          var overall = overallRating(run)
+          if (overall !== null) {
+            html += '<div class="big-stats"><div class="big-stat">' +
+                      '<div class="stat-number">' + overall + '</div>' +
+                      '<div class="stat-label">overall estimate</div>' +
+                    '</div></div>' +
+                    '<p class="result-legend">Match play counts three times as much as ' +
+                    'the puzzles, because a whole game is what a rating describes.</p>'
+          }
 
           return html
         }
@@ -256,9 +303,18 @@
               var runFit = fitPuzzleRating(run.tests.puzzles.bands)
               if (runFit && runFit.bounded) bits.push('tactics ' + runFit.rating)
             }
+
+            var runMatch = matchRating(run)
+            if (runMatch) {
+              bits.push('match play ' + runMatch.rating + ' (' + runMatch.games + ' games)')
+            }
+
             if (run.tests.acpl && run.tests.acpl.averageCentipawnLoss !== null) {
               bits.push(run.tests.acpl.averageCentipawnLoss + ' cp loss')
             }
+
+            var runOverall = overallRating(run)
+            if (runOverall !== null) bits.push('<strong>overall ' + runOverall + '</strong>')
             html += '<p><strong>' + run.engineVersion + '</strong> (depth ' + run.searchDepth +
                     ', ' + run.date + ')' + (bits.length ? ' &mdash; ' + bits.join(', ') : '') + '</p>'
           }
