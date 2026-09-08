@@ -90,7 +90,7 @@
    "key": "1.3.0@depth5",
    "engineVersion": "1.3.0",
    "searchDepth": 5,
-   "date": "2026-09-06",
+   "date": "2026-09-08",
    "machine": "Windows_NT x64, AMD Ryzen 5 7535U with Radeon Graphics         , Node 24.20.0",
    "tests": {
     "endgames": {
@@ -229,7 +229,23 @@
      ],
      "ratingEstimate": null,
      "source": "Lichess puzzle database, CC0 (public domain). Not redistributed here."
-    }
+    },
+    "matches": [
+     {
+      "depth": 5,
+      "opponent": "Stockfish, UCI_LimitStrength at UCI_Elo 1600, 100 ms per move",
+      "opponentElo": 1600,
+      "games": 6,
+      "wins": 3,
+      "draws": 1,
+      "losses": 2,
+      "score": 58.3,
+      "eloDifference": 58,
+      "confidence95": 282,
+      "estimatedElo": 1658,
+      "note": "Stockfish UCI_Elo is the engine authors own scale and is not the same thing as a human rating. Treat the number as an orientation, not as a rating."
+     }
+    ]
    }
   }
  ]
