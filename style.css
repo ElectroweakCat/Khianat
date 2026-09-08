@@ -261,6 +261,14 @@ input[type="submit"]:disabled {
   font-weight: 600;
 }
 
+/* what Khianat has to say for itself */
+.khianat-says {
+  min-height: 1.5em;
+  margin: 0.4rem 0 0;
+  color: var(--accent);
+  font-style: italic;
+}
+
 /* captured pieces and material balance around the board */
 .captured {
   display: flex;

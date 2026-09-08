@@ -70,6 +70,9 @@
 
       <!-- helpers for the personal and global game statistics -->
       <script type="text/javascript" src="stats.js"></script>
+
+      <!-- move sounds and Khianat's commentary -->
+      <script type="text/javascript" src="sounds.js?v=1"></script>
   </head>
 
   <body>
@@ -204,6 +207,7 @@
         <div id="myBoard"></div>
         <div id="capturedBottom" class="captured" role="img" aria-label="You have captured nothing"></div>
         <div class="status-line">Status: <span id="status" aria-live="polite"></span></div>
+        <p id="khianatSays" class="khianat-says" aria-live="polite"></p>
         <button id="gameBtn" type="button">New game</button>
         <p id="moveAnnouncement" class="visually-hidden" aria-live="polite"></p>
 
@@ -313,7 +317,7 @@
           if (played === null) return // stale or invalid, never crash the UI
 
           board.position(game.fen())
-          playMoveSound()
+          announceMove(played, true)
           highlightMove(played.from, played.to)
 
           // for screen readers: the move itself is only visible on the board
@@ -323,28 +327,38 @@
           saveCurrentGame()
         }
 
-        // sounds for the end of the game
-        var yesSound = new Audio('mixkit-robot-says-yes-283.wav')
-        var noSound = new Audio('mixkit-robot-says-no-282.wav')
-
-        // wooden click for every move on the board
-        var moveSound = new Audio('351518__mh2o__chess-move-on-alabaster.wav')
-
         // sound can be muted, the choice is remembered in this browser
         var SOUND_STORAGE_KEY = 'khianatSound'
         var soundOn = true
         try {
           soundOn = window.localStorage.getItem(SOUND_STORAGE_KEY) !== 'off'
         } catch (e) {}
+        Sounds.setEnabled(soundOn)
 
-        function playSound (sound) {
-          if (!soundOn) return
-          sound.currentTime = 0
-          sound.play()
+        // browsers keep audio asleep until the page has been touched
+        $(document).one('pointerdown touchstart keydown', function () {
+          Sounds.unlock()
+        })
+
+        // plays whatever this move should sound like and lets Khianat comment
+        function announceMove (move, byEngine) {
+          Sounds.countMove()
+          var givesCheck = game.in_check() && !game.game_over()
+          Sounds.playMove(move, givesCheck)
+
+          if (!byEngine) return
+
+          // Khianat only speaks when it has a reason to
+          if (move.captured && PIECE_POINTS[move.captured] >= 3) {
+            showTaunt(Sounds.taunt('capture', { chance: 0.3 }))
+          } else if (givesCheck) {
+            showTaunt(Sounds.taunt('check', { chance: 0.2 }))
+          }
         }
 
-        function playMoveSound () {
-          playSound(moveSound)
+        // the line is also shown, so it works with the sound off too
+        function showTaunt (line) {
+          if (line) $('#khianatSays').html('&ldquo;' + line + '&rdquo;')
         }
 
         function updateSoundButton () {
@@ -354,6 +368,7 @@
 
         function toggleSound () {
           soundOn = !soundOn
+          Sounds.setEnabled(soundOn)
           try {
             window.localStorage.setItem(SOUND_STORAGE_KEY, soundOn ? 'on' : 'off')
           } catch (e) {}
@@ -389,7 +404,7 @@
 
         // everything that happens after the player made a legal move
         function afterPlayerMove (move) {
-          playMoveSound()
+          announceMove(move, false)
           highlightMove(move.from, move.to)
 
           // make best legal move for black
@@ -622,6 +637,8 @@
           $('#myBoard .square-55d63').removeClass('highlight-last')
           resultRecorded = false
           gameResigned = false
+          Sounds.resetTaunts()
+          $('#khianatSays').empty()
           saveCurrentGame() // clears the stored game
           updateStatus()
           refreshStatsDisplay()
@@ -643,7 +660,8 @@
 
           recordResultOnce('l')
           saveCurrentGame() // clears the stored game
-          playSound(yesSound)
+          Sounds.play('win')
+          showTaunt(Sounds.taunt('resign', { always: true }))
           $status.html('Game over, ' + (playerColor === 'w' ? 'White' : 'Black') + ' resigned.')
           updateGameButton()
         }
@@ -773,8 +791,8 @@
         // the side to move is the one that got mated
         var playerLost = game.turn() === playerColor
 
-        // "Yes" when Khianat wins, a grumpy "No" when it does not
-        playSound(playerLost ? yesSound : noSound)
+        Sounds.play(playerLost ? 'win' : 'lose')
+        showTaunt(Sounds.taunt(playerLost ? 'win' : 'lose', { always: true }))
         recordResultOnce(playerLost ? 'l' : 'w')
         }
 
@@ -782,6 +800,8 @@
         else if (game.in_draw()) {
         status = 'Game over, drawn position'
 
+        Sounds.play('draw')
+        showTaunt(Sounds.taunt('draw', { always: true }))
         recordResultOnce('d')
         }
 
