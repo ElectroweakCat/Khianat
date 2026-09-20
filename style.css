@@ -471,6 +471,11 @@ select {
   border-radius: 2px 2px 0 0;
 }
 
+/* days without games stay visible as a faint baseline */
+.day-cols .day-col.empty {
+  opacity: 0.25;
+}
+
 @media (max-width: 600px) {
   .game-stats {
     grid-template-columns: 1fr;

@@ -240,20 +240,43 @@
           document.getElementById('countryStats').innerHTML = html
         }
 
-        // simple column chart: finished games per day, last 30 days
-        function showDailyStats (data) {
-          var days = []
-          for (var day in (data.daily || {})) {
-            days.push([day, data.daily[day]])
-          }
+        function isoDate (date) {
+          var month = date.getMonth() + 1
+          var day = date.getDate()
+          return date.getFullYear() +
+                 '-' + (month < 10 ? '0' : '') + month +
+                 '-' + (day < 10 ? '0' : '') + day
+        }
 
-          if (days.length === 0) {
+        /*
+         * Column chart of finished games per day. Every one of the last 30
+         * calendar days gets its own column, including the empty ones:
+         * leaving the quiet days out would make a week off look exactly
+         * like a week of playing.
+         */
+        function showDailyStats (data) {
+          var daily = data.daily || {}
+          var known = Object.keys(daily)
+
+          if (known.length === 0) {
             document.getElementById('dailyStats').innerHTML =
               '<p class="result-legend">No data yet.</p>'
             return
           }
 
-          days.sort(function (a, b) { return a[0] < b[0] ? -1 : 1 })
+          // end on today, unless the server is already a day ahead of us
+          known.sort()
+          var today = isoDate(new Date())
+          var lastDay = known[known.length - 1] > today ? known[known.length - 1] : today
+
+          var end = new Date(lastDay + 'T12:00:00')
+          var days = []
+          for (var back = 29; back >= 0; back--) {
+            var date = new Date(end.getTime())
+            date.setDate(date.getDate() - back)
+            var key = isoDate(date)
+            days.push([key, daily[key] || 0])
+          }
 
           var max = 0
           var total = 0
@@ -264,9 +287,11 @@
 
           var cols = ''
           for (var j = 0; j < days.length; j++) {
-            var height = Math.max(4, (days[j][1] / max) * 100)
-            cols += '<div class="day-col" style="height:' + height.toFixed(0) + '%" title="' +
-                    days[j][0] + ': ' + days[j][1] + '"></div>'
+            var count = days[j][1]
+            var height = count === 0 ? 3 : Math.max(6, (count / max) * 100)
+            cols += '<div class="day-col' + (count === 0 ? ' empty' : '') +
+                    '" style="height:' + height.toFixed(0) + '%" title="' +
+                    days[j][0] + ': ' + count + '"></div>'
           }
 
           document.getElementById('dailyStats').innerHTML =

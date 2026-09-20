@@ -25,7 +25,7 @@ $data = array(
     'longestGame' => null,   // moves
     'firstMoves' => array(), // SAN => count
     'countries' => array(),  // ISO code => { games, w } (guessed from browser timezone)
-    'daily' => array(),      // YYYY-MM-DD => games (last 30 days)
+    'daily' => array(),      // YYYY-MM-DD => games, last 30 calendar days
     'engineColors' => array('w' => 0, 'b' => 0) // how often Khianat had which colour
 );
 foreach ($levels as $lv) {
@@ -120,16 +120,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $data['engineColors'][$engineColor]++;
     }
 
-    // Games per day, kept for the last 30 days only
+    // Games per day. Pruned by date rather than by number of entries: days
+    // without games never get a key, so keeping "the last 30 entries" would
+    // quietly stretch across far more than 30 days.
     $today = date('Y-m-d');
     if (!isset($data['daily'][$today])) {
         $data['daily'][$today] = 0;
     }
     $data['daily'][$today]++;
-    if (count($data['daily']) > 30) {
-        krsort($data['daily']);
-        $data['daily'] = array_slice($data['daily'], 0, 30, true);
+
+    $cutoff = date('Y-m-d', strtotime('-29 days'));
+    foreach (array_keys($data['daily']) as $day) {
+        if ($day < $cutoff) {
+            unset($data['daily'][$day]);
+        }
     }
+    ksort($data['daily']);
 
     // First move of the player: only accept plausible SAN strings
     if (is_string($firstMove) && preg_match('/^[a-hRNBQKOx1-8=+#-]{2,7}$/', $firstMove)) {
